@@ -1,0 +1,17 @@
+name = "skala-skct"
+compatibility_date = "2026-07-01"
+pages_build_output_dir = "dist"
+
+# KV 네임스페이스 (문제셋·응시 결과 저장 → 기기 간 동기화).
+# id는 `npx wrangler kv namespace create SKCT_KV` 실행 후 출력된 값으로 교체하세요.
+[[kv_namespaces]]
+binding = "SKCT_KV"
+id = "a34241d2f25c4425b2aadd2ca4c49f35"
+
+# 로컬 `pages dev`에서 KV를 쓰려면 프리뷰 네임스페이스도 만들어 preview_id를 추가:
+#   npx wrangler kv namespace create SKCT_KV --preview
+# preview_id = "REPLACE_WITH_YOUR_PREVIEW_ID"
+
+# GEMINI_API_KEY 는 여기에 넣지 않습니다(시크릿).
+# - 로컬(pages dev): .dev.vars 파일에 GEMINI_API_KEY=... (.dev.vars.example 참고)
+# - 배포:            npx wrangler pages secret put GEMINI_API_KEY

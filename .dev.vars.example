@@ -1,0 +1,13 @@
+# Cloudflare `pages dev`/배포에서 사용하는 시크릿. 이 파일을 `.dev.vars`로 복사하고 값을 채우세요.
+# (참고: `npm run dev`(Vite)에서는 OCR용으로 `.env.local`을 사용하고, 인증/계정은 자동 로그인됩니다.)
+# `.dev.vars`는 .gitignore에 있어 커밋되지 않습니다.
+
+# OCR용 Gemini 키. 발급: https://aistudio.google.com/apikey
+GEMINI_API_KEY=...
+
+# 회원가입 초대코드(조직 전용). 이 값을 아는 사람만 가입 가능.
+SITE_PASSWORD=...
+
+# 관리자 닉네임 — 이 닉네임으로 만든 문제셋이 '공식'으로 상단에 표시됩니다.
+# 가입할 닉네임과 정확히 일치시키세요.
+ADMIN_NICK=...
