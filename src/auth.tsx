@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
+// 로그인/회원가입은 마더(관문)에서만. 이 앱은 공유 세션을 확인하고, 없으면 관문으로 보낸다.
+const MOTHER_URL = (import.meta.env.VITE_MOTHER_URL as string | undefined) ?? 'http://www.skct.local';
+
 export interface AuthUser {
   nickname: string;
   isAdmin: boolean;
@@ -8,8 +11,6 @@ export interface AuthUser {
 interface AuthCtx {
   user: AuthUser | null;
   loading: boolean;
-  login: (nickname: string, password: string) => Promise<void>;
-  signup: (nickname: string, password: string, invite: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -21,21 +22,12 @@ export function useAuth(): AuthCtx {
   return c;
 }
 
-async function postJson(url: string, body: unknown): Promise<any> {
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const text = await r.text();
-  let data: any = {};
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    /* non-JSON */
-  }
-  if (!r.ok) throw new Error(data?.error || `요청 실패 (${r.status})`);
-  return data;
+/** 마더(관문)의 로그인 페이지로 이동(로그인 후 이 앱으로 복귀). sso=1로 무한 루프 방지. */
+export function goToMotherLogin(): void {
+  const here = new URL(window.location.href);
+  here.searchParams.set('sso', '1');
+  const back = encodeURIComponent(here.toString());
+  window.location.href = `${MOTHER_URL.replace(/\/$/, '')}/login?redirect=${back}`;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -60,23 +52,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (nickname: string, password: string) => {
-    const d = await postJson('/api/auth/login', { nickname, password });
-    setUser({ nickname: d.nickname, isAdmin: !!d.isAdmin });
-  };
-  const signup = async (nickname: string, password: string, invite: string) => {
-    const d = await postJson('/api/auth/signup', { nickname, password, invite });
-    setUser({ nickname: d.nickname, isAdmin: !!d.isAdmin });
-  };
   const logout = async () => {
     if (import.meta.env.DEV) return; // 개발 모드에선 로그아웃 없음
     try {
-      await postJson('/api/auth/logout', {});
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
       /* 무시 */
     }
     setUser(null);
+    goToMotherLogin();
   };
 
-  return <Ctx.Provider value={{ user, loading, login, signup, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, logout }}>{children}</Ctx.Provider>;
 }

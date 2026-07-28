@@ -2,12 +2,19 @@
 # (참고: `npm run dev`(Vite)에서는 OCR용으로 `.env.local`을 사용하고, 인증/계정은 자동 로그인됩니다.)
 # `.dev.vars`는 .gitignore에 있어 커밋되지 않습니다.
 
+# 공유 세션 서명 비밀(마더·skct·skala 동일). 32자 이상. 마더가 서명한 JWT를 검증하는 데 씀.
+SESSION_SECRET=change-me-to-a-long-random-string-32chars-min
+
+# 공유 쿠키 도메인(로그아웃 시 쿠키 제거에 사용). 배포: .example.com / 로컬: .skct.local
+SESSION_COOKIE_DOMAIN=.skct.local
+
 # OCR용 Gemini 키. 발급: https://aistudio.google.com/apikey
 GEMINI_API_KEY=...
 
-# 회원가입 초대코드(조직 전용). 이 값을 아는 사람만 가입 가능.
-SITE_PASSWORD=...
-
-# 관리자 닉네임 — 이 닉네임으로 만든 문제셋이 '공식'으로 상단에 표시됩니다.
-# 가입할 닉네임과 정확히 일치시키세요.
+# 관리자 닉네임 — 이 닉네임(=연결된 skala 핸들)으로 만든 문제셋이 '공식'으로 상단에 표시됩니다.
 ADMIN_NICK=...
+
+# (로그인/회원가입은 마더로 이관되어 SITE_PASSWORD 초대코드는 더 이상 쓰지 않습니다.)
+
+# 프론트엔드(빌드 타임, .env/.env.local 또는 배포 환경변수):
+#   VITE_MOTHER_URL=https://www.example.com   # 미인증 시 이 관문 로그인으로 이동

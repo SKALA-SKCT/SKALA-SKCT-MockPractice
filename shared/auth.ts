@@ -74,3 +74,84 @@ export function readSessionToken(cookieHeader: string | null): string | null {
   }
   return null;
 }
+
+/* ── 공유 세션 JWT (마더가 HS256로 서명, 여기선 검증만) ───────────
+   통합 로그인은 마더(관문)에서만. skala는 `skct_session` 쿠키의 JWT를
+   서명 검증만 해서 사용자를 식별한다(오프라인, 마더 호출 불필요). */
+export const SHARED_SESSION_COOKIE = 'skct_session';
+
+export interface SharedSessionClaims {
+  sub: string; // kakao:<id> | skct:<userId> | skala:<nick>
+  nick?: string;
+  skctUserId?: number;
+  skalaHandle?: string;
+  admin?: boolean;
+  exp?: number;
+}
+
+const _enc = new TextEncoder();
+const _dec = new TextDecoder();
+const _bs = (b: Uint8Array): BufferSource => b as unknown as BufferSource;
+
+function b64urlToBytes(s: string): Uint8Array {
+  let t = s.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = t.length % 4 ? 4 - (t.length % 4) : 0;
+  t += '='.repeat(pad);
+  const bin = atob(t);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+const b64urlToStr = (s: string) => _dec.decode(b64urlToBytes(s));
+
+export async function verifySession(
+  token: string | null,
+  secret: string,
+): Promise<SharedSessionClaims | null> {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [h, p, s] = parts;
+  try {
+    if (JSON.parse(b64urlToStr(h))?.alg !== 'HS256') return null;
+  } catch {
+    return null;
+  }
+  const key = await crypto.subtle.importKey(
+    'raw',
+    _bs(_enc.encode(secret)),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  );
+  let ok = false;
+  try {
+    ok = await crypto.subtle.verify('HMAC', key, _bs(b64urlToBytes(s)), _bs(_enc.encode(h + '.' + p)));
+  } catch {
+    return null;
+  }
+  if (!ok) return null;
+  let payload: SharedSessionClaims;
+  try {
+    payload = JSON.parse(b64urlToStr(p));
+  } catch {
+    return null;
+  }
+  if (typeof payload.exp === 'number' && payload.exp < Math.floor(Date.now() / 1000)) return null;
+  return payload;
+}
+
+export function readSharedSessionToken(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(';')) {
+    const i = part.indexOf('=');
+    if (i !== -1 && part.slice(0, i).trim() === SHARED_SESSION_COOKIE) return part.slice(i + 1).trim();
+  }
+  return null;
+}
+
+export function clearSharedCookie(opts: { domain?: string; secure?: boolean } = {}): string {
+  const domain = opts.domain ? ` Domain=${opts.domain};` : '';
+  const secure = opts.secure ? ' Secure;' : '';
+  return `${SHARED_SESSION_COOKIE}=; Path=/;${domain} HttpOnly;${secure} SameSite=Lax; Max-Age=0`;
+}
