@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { store } from '../store';
-import { seedSampleProblemSet } from '../dev/sampleData';
 import type { ProblemSet } from '../types';
 
 export default function Home() {
@@ -12,12 +11,6 @@ export default function Home() {
   useEffect(() => {
     refresh();
   }, []);
-
-  // 개발 모드에서만: 응시 흐름을 바로 테스트할 수 있게 샘플 모의고사를 넣는다.
-  const seedSample = async () => {
-    await seedSampleProblemSet();
-    refresh();
-  };
 
   const official = sets.filter((s) => s.official);
   const custom = sets.filter((s) => !s.official);
@@ -33,20 +26,6 @@ export default function Home() {
         </p>
       </header>
 
-      <div className="actions">
-        <Link className="btn primary" to="/admin">
-          관리자 · 문제셋 만들기
-        </Link>
-        <Link className="btn ghost" to="/history">
-          결과 기록 보기
-        </Link>
-        {import.meta.env.DEV && (
-          <button className="btn ghost" type="button" onClick={seedSample}>
-            샘플 문제셋 넣기
-          </button>
-        )}
-      </div>
-
       {sets.length === 0 ? (
         <section className="card">
           <h2>문제셋</h2>
@@ -58,9 +37,7 @@ export default function Home() {
         <>
           {official.length > 0 && (
             <section className="card">
-              <h2>
-                공식 문제셋 <span className="muted">· 관리자</span>
-              </h2>
+              <h2>공식 문제셋</h2>
               <SetList sets={official} onStart={(id) => nav(`/exam/${id}`)} />
             </section>
           )}
