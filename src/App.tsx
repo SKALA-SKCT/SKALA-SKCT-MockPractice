@@ -20,7 +20,7 @@ function Gate({ children }: { children: ReactNode }) {
       <header className="site-header">
         <nav className="site-nav">
           <Link className="brand-mark" to="/" aria-label="SKALA-SKCT 홈">
-            <img src="https://mock.skala-skct.com/assets/sk-logo.svg" alt="SK" />
+            <img src="/assets/sk-logo.svg" alt="SK" />
             <span>SKALA-SKCT</span>
           </Link>
           <div className="site-tabs">

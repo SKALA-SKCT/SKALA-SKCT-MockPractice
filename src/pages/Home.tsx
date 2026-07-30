@@ -17,6 +17,15 @@ export default function Home() {
 
   return (
     <div className="page home">
+      <header className="hero">
+        <p className="eyebrow">SKALA-SKCT</p>
+        <h1>모의고사 문제 연습</h1>
+        <p className="lead">
+          문제는 외부 창(책·PDF)에서 보고, 여기엔 <b>답만</b> 적습니다. 지나간 문제는 다시 못 푸는 실전처럼,
+          문항별 걸린 시간과 오답 패턴을 끝나고 분석해 줍니다.
+        </p>
+      </header>
+
       {sets.length === 0 ? (
         <section className="card">
           <h2>문제셋</h2>
