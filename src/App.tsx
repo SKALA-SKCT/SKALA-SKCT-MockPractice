@@ -32,7 +32,6 @@ function Gate({ children }: { children: ReactNode }) {
             </button>
           </div>
           <div className="site-account">
-            {user.isAdmin && <Link className="header-button" to="/admin">관리자</Link>}
             <div
               className="account-menu"
               onMouseEnter={() => setAccountOpen(true)}
@@ -53,14 +52,6 @@ function Gate({ children }: { children: ReactNode }) {
                 </button>
               </div>
             </div>
-            <button
-              className="help-button"
-              type="button"
-              aria-label="도움말"
-              onClick={() => window.alert('모의고사 문제 연습 서비스입니다.')}
-            >
-              ?
-            </button>
           </div>
         </nav>
       </header>
