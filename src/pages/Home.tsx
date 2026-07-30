@@ -1,111 +1,291 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { store } from '../store';
 import { useAuth } from '../auth';
-import { seedSampleProblemSet } from '../dev/sampleData';
-import type { ProblemSet } from '../types';
+import { store } from '../store';
+import type { ProblemSet, Session } from '../types';
+
+const OFFICIAL_MOCKS = [
+  '2023년 하반기 온라인 1회',
+  '2023년 하반기 온라인 2회',
+  '2024년 상반기',
+  '2024년 하반기 1회',
+  '2024년 하반기 2회',
+  '2024년 하반기 3회',
+];
+
+const PRIVATE_MOCKS = [
+  '언어이해 집중 연습',
+  '자료해석 집중 연습',
+  '창의수리 집중 연습',
+  '종합 문제 연습',
+];
+
+const DEV_SAMPLE_ID = 'dev-sample-a';
 
 export default function Home() {
   const [sets, setSets] = useState<ProblemSet[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [manageOpen, setManageOpen] = useState(false);
   const nav = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
-  const refresh = () => store.listProblemSets().then(setSets).catch(() => setSets([]));
+  const refresh = async () => {
+    try {
+      const [storedSets, nextSessions] = await Promise.all([
+        store.listProblemSets(),
+        store.listSessions(),
+      ]);
+      let nextSets = storedSets;
+      if (import.meta.env.DEV && !storedSets.some((set) => set.id === DEV_SAMPLE_ID)) {
+        const { seedSampleProblemSet } = await import('../dev/sampleData');
+        const sample = await seedSampleProblemSet();
+        nextSets = [sample, ...storedSets];
+      }
+      setSets(nextSets);
+      setSessions(nextSessions);
+    } catch {
+      setSets([]);
+      setSessions([]);
+    }
+  };
   useEffect(() => {
     refresh();
   }, []);
-
-  // 개발 모드에서만: 응시 흐름을 바로 테스트할 수 있게 샘플 모의고사를 넣는다.
-  const seedSample = async () => {
-    await seedSampleProblemSet();
-    refresh();
-  };
+  useEffect(() => {
+    if (!manageOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setManageOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [manageOpen]);
 
   const official = sets.filter((s) => s.official);
   const custom = sets.filter((s) => !s.official);
+  const ownedSets = sets.filter((set) => set.owner === user?.nickname);
+  const removeSet = async (id: string) => {
+    if (import.meta.env.DEV && id === DEV_SAMPLE_ID) {
+      window.alert('기본 샘플 문제셋은 삭제할 수 없습니다.');
+      return;
+    }
+    if (!window.confirm('이 문제셋을 삭제할까요?')) return;
+    try {
+      await store.deleteProblemSet(id);
+      await refresh();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : '문제셋을 삭제하지 못했습니다.');
+    }
+  };
 
   return (
-    <div className="page home">
-      <div className="user-bar">
-        <span className="muted">
-          <b>{user?.nickname}</b>님
-        </span>
-        <button className="linklike" type="button" onClick={() => logout()}>
-          로그아웃
+    <div className="mx-auto min-h-[calc(100vh-68px)] w-full max-w-[1248px] px-6 pb-10 pt-5">
+      <div className="grid min-h-[calc(100vh-128px)] grid-cols-2 gap-5 max-[900px]:grid-cols-1">
+        <ProblemSetPanel
+          title="공식 문제셋"
+          sets={official}
+          sessions={sessions}
+          mockNames={OFFICIAL_MOCKS}
+          onStart={(id) => nav(`/exam/${id}`)}
+        />
+        <ProblemSetPanel
+          title="사설 문제셋"
+          sets={custom}
+          sessions={sessions}
+          mockNames={PRIVATE_MOCKS}
+          onStart={(id) => nav(`/exam/${id}`)}
+        />
+      </div>
+      <div className="fixed bottom-7 right-7 z-40">
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={manageOpen}
+          onClick={() => setManageOpen(true)}
+          className="inline-flex h-12 items-center gap-2 rounded-full bg-brand px-5 text-sm font-bold text-white shadow-[0_10px_26px_rgba(0,0,0,0.16)] transition hover:-translate-y-0.5 hover:bg-[#c90026]"
+        >
+          <span className="text-lg leading-none">+</span>
+          문제 추가 / 관리
         </button>
       </div>
-      <header className="hero">
-        <h1>SKCT 연습 도구</h1>
-        <p className="lead">
-          문제는 외부 창(책·PDF)에서 보고, 여기엔 <b>답만</b> 적습니다. 지나간 문제는 다시 못 푸는 실전처럼,
-          문항별 걸린 시간과 오답 패턴을 끝나고 분석해 줍니다.
-        </p>
-      </header>
-
-      <div className="actions">
-        <Link className="btn primary" to="/admin">
-          관리자 · 문제셋 만들기
-        </Link>
-        <Link className="btn ghost" to="/history">
-          결과 기록 보기
-        </Link>
-        {import.meta.env.DEV && (
-          <button className="btn ghost" type="button" onClick={seedSample}>
-            🧪 샘플 문제셋 넣기
-          </button>
-        )}
-      </div>
-
-      {sets.length === 0 ? (
-        <section className="card">
-          <h2>문제셋</h2>
-          <p className="muted">
-            아직 문제셋이 없어요. <Link to="/admin">관리자</Link>에서 정답표를 등록해 만드세요.
-          </p>
-        </section>
-      ) : (
-        <>
-          {official.length > 0 && (
-            <section className="card">
-              <h2>
-                공식 문제셋 <span className="muted">· 관리자</span>
+      {manageOpen && (
+        <div
+          className="fixed inset-0 z-[100] grid place-items-center bg-black/35 px-5 py-8"
+          role="presentation"
+          onClick={() => setManageOpen(false)}
+        >
+          <section
+            aria-labelledby="problem-set-manager-title"
+            aria-modal="true"
+            className="flex h-[min(506px,calc(100vh-64px))] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_24px_70px_rgba(0,0,0,0.2)]"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
+              <h2 className="m-0 text-lg font-bold text-ink" id="problem-set-manager-title">
+                문제 추가 / 관리
               </h2>
-              <SetList sets={official} onStart={(id) => nav(`/exam/${id}`)} />
-            </section>
-          )}
-          <section className="card">
-            <h2>사용자 지정 문제셋</h2>
-            {custom.length === 0 ? (
-              <p className="muted">
-                아직 없어요. 누구나 <Link to="/admin">관리자</Link>에서 추가할 수 있어요.
-              </p>
-            ) : (
-              <SetList sets={custom} onStart={(id) => nav(`/exam/${id}`)} />
-            )}
+              <div className="flex items-center gap-2">
+                {user?.isAdmin && (
+                  <Link
+                    className="rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-white no-underline hover:bg-[#c90026]"
+                    onClick={() => setManageOpen(false)}
+                    to="/admin?type=official"
+                  >
+                    공식 문제셋 추가
+                  </Link>
+                )}
+                <Link
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-[11px] font-bold text-ink no-underline hover:bg-page"
+                  onClick={() => setManageOpen(false)}
+                  to="/admin?type=private"
+                >
+                  사설 문제셋 추가
+                </Link>
+                <button
+                  aria-label="닫기"
+                  className="grid h-8 w-8 place-items-center rounded-full border border-hairline bg-white text-lg leading-none text-zinc-500 hover:bg-page"
+                  onClick={() => setManageOpen(false)}
+                  type="button"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5">
+              {ownedSets.length === 0 ? (
+                <div className="grid min-h-48 place-items-center text-sm text-zinc-400">
+                  내가 만든 문제셋이 없습니다.
+                </div>
+              ) : (
+                <ol className="m-0 list-none p-0">
+                  {ownedSets.map((set, index) => (
+                    <li
+                      className="grid min-h-[64px] grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline last:border-b-0"
+                      key={set.id}
+                    >
+                      <span className="grid h-[34px] w-[34px] place-items-center rounded-[9px] bg-page text-xs font-bold text-zinc-500">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          {set.official && (
+                            <span className="rounded-md border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-brand">
+                              공식
+                            </span>
+                          )}
+                          <strong className="truncate text-[13px] font-semibold text-ink">{set.name}</strong>
+                        </div>
+                        <p className="mt-1 text-[11px] text-zinc-400">{set.items.length}문항</p>
+                      </div>
+                      {import.meta.env.DEV && set.id === DEV_SAMPLE_ID ? (
+                        <span className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-400">
+                          기본
+                        </span>
+                      ) : (
+                        <button
+                          className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => removeSet(set.id)}
+                          type="button"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
           </section>
-        </>
+        </div>
       )}
     </div>
   );
 }
 
-function SetList({ sets, onStart }: { sets: ProblemSet[]; onStart: (id: string) => void }) {
+function ProblemSetPanel({
+  title,
+  sets,
+  sessions,
+  mockNames,
+  onStart,
+}: {
+  title: string;
+  sets: ProblemSet[];
+  sessions: Session[];
+  mockNames: string[];
+  onStart: (id: string) => void;
+}) {
+  const rows = [
+    ...sets.map((set) => ({ name: set.name, set })),
+    ...mockNames
+      .filter((name) => !sets.some((set) => set.name === name))
+      .map((name) => ({ name, set: null })),
+  ];
+  const description =
+    title === '공식 문제셋'
+      ? '운영진이 검수한 문제셋입니다. 공식 문제셋 추가는 관리자만 가능합니다.'
+      : '사용자가 직접 만든 문제셋입니다. 누구나 새 문제셋을 추가할 수 있습니다.';
+
   return (
-    <ul className="set-list">
-      {sets.map((s) => (
-        <li key={s.id}>
-          <div className="set-meta">
-            <strong>{s.name}</strong>
-            <span className="muted">
-              {s.items.length}문항 · {s.sections.join(', ')}
-              {s.owner ? ` · ${s.owner}` : ''}
-            </span>
+    <section className="flex min-h-full flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-[0_8px_28px_rgba(32,32,32,0.055)]">
+      <div className="flex min-h-14 items-center justify-between gap-4 border-b border-hairline px-5 py-3">
+        <h2 className="m-0 text-[17px] font-bold">{title}</h2>
+        <div className="flex items-center gap-2">
+          <div className="group relative">
+            <button
+              type="button"
+              aria-label={`${title} 안내`}
+              className="grid h-7 w-7 cursor-help place-items-center rounded-full border border-hairline bg-white text-xs font-bold text-ink-2 hover:bg-page"
+            >
+              ?
+            </button>
+            <div role="tooltip" className="pointer-events-none invisible absolute right-0 top-full z-20 mt-2 w-60 translate-y-[-4px] rounded-xl border border-black/10 bg-white p-3 text-xs font-normal leading-5 text-ink-2 opacity-0 shadow-[0_14px_32px_rgba(0,0,0,0.14)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+              {description}
+            </div>
           </div>
-          <button className="btn primary sm" onClick={() => onStart(s.id)}>
-            응시 시작
-          </button>
-        </li>
-      ))}
-    </ul>
+        </div>
+      </div>
+      <ol className="m-0 flex-1 list-none px-5 py-0">
+        {rows.map((row, index) => (
+          <li className="grid min-h-[62px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline last:border-b-0" key={row.set?.id ?? `${title}-${row.name}`}>
+            <span className="grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-page text-[13px] font-bold text-zinc-500">{index + 1}</span>
+            <div className="min-w-0">
+              <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-semibold">{row.name}</strong>
+            </div>
+            {row.set ? (
+              <div className="flex items-center gap-1.5">
+                {sessions.find((session) => session.problemSetId === row.set!.id) ? (
+                  <>
+                    <button className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]" onClick={() => onStart(row.set!.id)}>
+                      재응시
+                    </button>
+                    <Link
+                      className="rounded-lg border border-hairline bg-white px-2.5 py-1.5 text-[11px] font-semibold text-ink no-underline hover:bg-page"
+                      to={`/results/${
+                        sessions.find((session) => session.problemSetId === row.set!.id)!.id
+                      }`}
+                    >
+                      결과
+                    </Link>
+                  </>
+                ) : (
+                  <button className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]" onClick={() => onStart(row.set!.id)}>
+                    응시
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]"
+                type="button"
+                onClick={() => window.alert('서비스 준비 중입니다!')}
+              >
+                응시
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

@@ -1,60 +1,146 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import Calculator from './Calculator';
-import Memo from './Memo';
-import DrawPad from './DrawPad';
 
-type Tab = 'memo' | 'draw';
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'memo', label: '메모장' },
-  { id: 'draw', label: '그림판' },
-];
-
-export default function ToolDock({ resetKey }: { resetKey?: string | number }) {
-  const [tab, setTab] = useState<Tab>('memo');
-  const [open, setOpen] = useState(true);
-
-  if (!open) {
-    return (
-      <button className="tool-reopen" onClick={() => setOpen(true)} type="button">
-        도구 열기 ▸
-      </button>
-    );
-  }
+function MemoTextarea() {
+  const [memo, setMemo] = useState('');
 
   return (
-    <aside className="tool-dock">
-      <div className="tool-tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={`tool-tab${tab === t.id ? ' active' : ''}`}
-            onClick={() => setTab(t.id)}
-            type="button"
-          >
-            {t.label}
-          </button>
-        ))}
-        <button className="tool-collapse" onClick={() => setOpen(false)} type="button" title="접기">
-          ✕
-        </button>
-      </div>
-      <div className="tool-body">
-        {/* 항상 마운트한 채 표시만 토글 → 탭 전환에도 내용 유지.
-            단, resetKey(문항)가 바뀌면 리마운트되어 내용이 초기화된다. */}
-        <div hidden={tab !== 'memo'}>
-          <Memo key={resetKey} />
-        </div>
-        <div hidden={tab !== 'draw'}>
-          <DrawPad key={resetKey} />
-        </div>
-      </div>
+    <textarea
+      value={memo}
+      onChange={(event) => setMemo(event.target.value)}
+      placeholder="다음 문제로 넘어가면 지워집니다"
+      className="block h-full w-full resize-none border-0 bg-white px-3 py-2.5 text-sm outline-none"
+    />
+  );
+}
 
-      {/* 계산기는 분리해 항상 아래에 표시 */}
-      <div className="tool-calc">
-        <div className="tool-calc-label">계산기</div>
-        <Calculator key={resetKey} />
+export default function ToolDock({ resetKey }: { resetKey?: string | number }) {
+  const [tab, setTab] = useState<'memo' | 'draw'>('memo');
+  const [memoReset, setMemoReset] = useState(0);
+  const [drawTool, setDrawTool] = useState<'pen' | 'eraser'>('pen');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const last = useRef<{ x: number; y: number } | null>(null);
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || tab !== 'draw') return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    canvas.getContext('2d')?.scale(dpr, dpr);
+  }, [tab, resetKey]);
+
+  const position = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  };
+
+  const start = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    drawing.current = true;
+    last.current = position(event);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const move = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current || !last.current) return;
+    const context = event.currentTarget.getContext('2d');
+    if (!context) return;
+    const next = position(event);
+    context.globalCompositeOperation = drawTool === 'eraser' ? 'destination-out' : 'source-over';
+    context.strokeStyle = '#18181b';
+    context.lineWidth = drawTool === 'eraser' ? 8 : 2;
+    context.lineCap = 'round';
+    context.beginPath();
+    context.moveTo(last.current.x, last.current.y);
+    context.lineTo(next.x, next.y);
+    context.stroke();
+    last.current = next;
+  };
+
+  const end = () => {
+    drawing.current = false;
+    last.current = null;
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-lg border border-zinc-200">
+        <div className="flex h-10 items-center overflow-hidden whitespace-nowrap border-b border-zinc-100 px-2">
+          <button
+            type="button"
+            onClick={() => setTab('memo')}
+            className={`px-2 py-1.5 text-xs font-semibold ${
+              tab === 'memo' ? 'text-red-600' : 'text-zinc-400'
+            }`}
+          >
+            메모장
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('draw')}
+            className={`px-2 py-1.5 text-xs font-semibold ${
+              tab === 'draw' ? 'text-red-600' : 'text-zinc-400'
+            }`}
+          >
+            그림판
+          </button>
+          {tab === 'draw' && (
+            <div className="ml-1 flex shrink-0 items-center gap-1 border-l border-zinc-100 pl-2">
+              <button
+                type="button"
+                onClick={() => setDrawTool('pen')}
+                className={`rounded px-1.5 py-1 text-[11px] font-medium ${
+                  drawTool === 'pen' ? 'bg-zinc-800 text-white' : 'text-zinc-400'
+                }`}
+              >
+                펜
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawTool('eraser')}
+                className={`rounded px-1.5 py-1 text-[11px] font-medium ${
+                  drawTool === 'eraser' ? 'bg-zinc-800 text-white' : 'text-zinc-400'
+                }`}
+              >
+                지우개
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (tab === 'memo') setMemoReset((value) => value + 1);
+              else clearCanvas();
+            }}
+            className="ml-auto shrink-0 px-2 py-1.5 text-xs text-zinc-400 hover:text-zinc-600"
+          >
+            전체 지우기
+          </button>
+        </div>
+        <div className="h-44 overflow-hidden rounded-b-lg">
+          {tab === 'memo' ? (
+            <MemoTextarea key={`${resetKey}:${memoReset}`} />
+          ) : (
+            <canvas
+              ref={canvasRef}
+              onPointerDown={start}
+              onPointerMove={move}
+              onPointerUp={end}
+              onPointerLeave={end}
+              className="block h-full w-full touch-none bg-white"
+            />
+          )}
+        </div>
       </div>
-    </aside>
+      <Calculator key={resetKey} />
+    </div>
   );
 }
