@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { store } from '../store';
+import { useAuth } from '../auth';
 import { seedSampleProblemSet } from '../dev/sampleData';
 import type { ProblemSet } from '../types';
 
 export default function Home() {
   const [sets, setSets] = useState<ProblemSet[]>([]);
   const nav = useNavigate();
+  const { user, logout } = useAuth();
 
   const refresh = () => store.listProblemSets().then(setSets).catch(() => setSets([]));
   useEffect(() => {
@@ -24,9 +26,16 @@ export default function Home() {
 
   return (
     <div className="page home">
+      <div className="user-bar">
+        <span className="muted">
+          <b>{user?.nickname}</b>님
+        </span>
+        <button className="linklike" type="button" onClick={() => logout()}>
+          로그아웃
+        </button>
+      </div>
       <header className="hero">
-        <p className="eyebrow">SKALA-SKCT</p>
-        <h1>모의고사 문제 연습</h1>
+        <h1>SKCT 연습 도구</h1>
         <p className="lead">
           문제는 외부 창(책·PDF)에서 보고, 여기엔 <b>답만</b> 적습니다. 지나간 문제는 다시 못 푸는 실전처럼,
           문항별 걸린 시간과 오답 패턴을 끝나고 분석해 줍니다.
@@ -42,7 +51,7 @@ export default function Home() {
         </Link>
         {import.meta.env.DEV && (
           <button className="btn ghost" type="button" onClick={seedSample}>
-            샘플 문제셋 넣기
+            🧪 샘플 문제셋 넣기
           </button>
         )}
       </div>

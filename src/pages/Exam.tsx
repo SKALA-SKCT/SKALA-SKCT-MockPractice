@@ -46,7 +46,7 @@ function ExamRunner({ set }: { set: ProblemSet }) {
 
   if (exam.phase === 'section-intro') return <SectionIntro exam={exam} />;
   if (exam.phase === 'done') return <div className="page">결과 계산 중…</div>;
-  return <Question exam={exam} setName={set.name} />;
+  return <Question exam={exam} />;
 }
 
 function SectionIntro({ exam }: { exam: ExamController }) {
@@ -80,9 +80,8 @@ function SectionIntro({ exam }: { exam: ExamController }) {
   );
 }
 
-function Question({ exam, setName }: { exam: ExamController; setName: string }) {
+function Question({ exam }: { exam: ExamController }) {
   const [confirm, setConfirm] = useState<{ msg: string; run: () => void } | null>(null);
-  const [zoom, setZoom] = useState(100);
   const lowTime = exam.sectionRemainingSec <= 60;
   // 마지막 영역의 마지막 문항 → '다음' 대신 '제출'
   const isLastQuestion =
@@ -102,50 +101,43 @@ function Question({ exam, setName }: { exam: ExamController; setName: string }) 
     });
   };
   // 답 선택은 마우스 클릭만(키보드 숫자는 계산기 입력과 충돌하므로 사용 안 함).
-  useEffect(() => {
-    document.body.classList.add('practice-exam-active');
-    return () => document.body.classList.remove('practice-exam-active');
-  }, []);
 
   return (
     <div className="exam-screen">
       <header className="exam-top">
-        <strong className="exam-name">{setName}</strong>
+        <div className="exam-top-left">
+          <span className="sec-name">{exam.section}</span>
+          <span className="q-count">
+            {exam.questionNumber}
+            <span className="muted"> / {exam.questionsInSection}</span>
+          </span>
+        </div>
         <div className={`exam-top-center${lowTime ? ' low' : ''}`}>
           <span className="muted">남은 시간</span>
           <b>{fmtClock(exam.sectionRemainingSec)}</b>
         </div>
-        <div className="zoom-control">
-          <button
-            type="button"
-            onClick={() => setZoom((value) => Math.max(80, value - 10))}
-            disabled={zoom <= 80}
-            aria-label="화면 축소"
-          >
-            −
-          </button>
-          <span>{zoom}%</span>
-          <button
-            type="button"
-            onClick={() => setZoom((value) => Math.min(120, value + 10))}
-            disabled={zoom >= 120}
-            aria-label="화면 확대"
-          >
-            +
+        <div className="exam-top-right">
+          <div className="q-timer">
+            <span className="muted">이 문항</span>
+            <b>{fmtTime(exam.questionElapsedSec)}</b>
+          </div>
+          <button className="btn ghost sm pause-btn" onClick={exam.pause} type="button" title="일시정지">
+            ⏸ 일시정지
           </button>
         </div>
       </header>
 
-      <main className="exam-main" style={{ zoom: `${zoom}%` }}>
+      <div className="exam-progress">
+        <div
+          className="exam-progress-bar"
+          style={{ width: `${(exam.questionIndex / exam.questionsInSection) * 100}%` }}
+        />
+      </div>
+
+      <main className="exam-main">
         <div className="q-card">
-          <p className="q-position">
-            {exam.section} 영역 {exam.questionIndex + 1}
-            <span> / {exam.questionsInSection}</span>
-          </p>
-          <div className="external-question">
-            <p>외부 문제지의 문항을 확인하고 답을 선택하세요.</p>
-            <strong>{exam.questionNumber}번</strong>
-          </div>
+          <p className="q-hint muted">외부 창의 아래 번호 문제를 풀고 답을 고르세요</p>
+          <div className="q-number">{exam.questionNumber}번</div>
           <div className="choices">
             {Array.from({ length: exam.choices }, (_, i) => i + 1).map((c) => (
               <button
@@ -153,15 +145,19 @@ function Question({ exam, setName }: { exam: ExamController; setName: string }) 
                 className={`choice${exam.selected === c ? ' selected' : ''}`}
                 onClick={() => pick(c)}
               >
-                <span>{CIRCLED[c - 1] ?? c}</span>
-                {c}번
+                {CIRCLED[c - 1] ?? c}
               </button>
             ))}
           </div>
+          <p className="q-hint muted auto-hint">
+            답을 <b>클릭</b>해 고른 뒤 <b>다음</b>을 눌러 넘어가세요. 답 없이 넘길 땐 <b>패스</b>. (키보드
+            숫자는 계산기 입력용)
+          </p>
           <div className="q-controls">
             <button className="btn ghost" onClick={doGiveUp}>
               남은 문제 포기
             </button>
+            <div className="spacer" />
             <button className="btn" onClick={doSkip}>
               패스
             </button>
@@ -169,17 +165,10 @@ function Question({ exam, setName }: { exam: ExamController; setName: string }) 
               {isLastQuestion ? '제출' : '다음'}
             </button>
           </div>
+          <p className="q-answered muted">이 영역 응답 {exam.answeredInSection}문항</p>
         </div>
 
-        <div className="exam-tools-column">
-          <ToolDock resetKey={resetKey} />
-          <div className="exam-tool-actions">
-            <button className="btn ghost" onClick={exam.pause} type="button">
-              일시정지
-            </button>
-            <span>이 문항 {fmtTime(exam.questionElapsedSec)}</span>
-          </div>
-        </div>
+        <ToolDock resetKey={resetKey} />
       </main>
 
       {confirm && (
@@ -208,6 +197,7 @@ function Question({ exam, setName }: { exam: ExamController; setName: string }) 
       {exam.paused && (
         <div className="pause-overlay">
           <div className="pause-box">
+            <div className="pause-emoji">⏸</div>
             <h2>일시정지됨</h2>
             <p className="muted">타이머가 멈췄어요. 준비되면 재개를 눌러 계속하세요.</p>
             <button className="btn primary lg" onClick={exam.resume} type="button">
