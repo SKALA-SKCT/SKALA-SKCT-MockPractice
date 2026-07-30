@@ -152,7 +152,8 @@ body {
   opacity: 1;
   transform: translateY(0);
 }
-.account-dropdown button {
+.account-dropdown button,
+.account-dropdown a {
   display: block;
   width: 100%;
   padding: 10px 12px;
@@ -164,6 +165,11 @@ body {
   font: inherit;
   text-align: left;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.14);
+}
+.account-dropdown a {
+  margin-top: -1px;
+  color: var(--primary);
+  text-decoration: none;
 }
 
 h1,
@@ -300,6 +306,105 @@ a:hover {
 }
 .set-meta .muted {
   font-size: 13px;
+}
+
+.problem-set-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.problem-set-panel {
+  margin-top: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.problem-set-head {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.problem-set-head h2 {
+  margin: 0;
+}
+
+.add-set-button {
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.problem-set-list {
+  margin: 0;
+  padding: 0 20px;
+  list-style: none;
+}
+
+.problem-set-list li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  min-height: 78px;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.problem-set-list li:last-child {
+  border-bottom: 0;
+}
+
+.set-index {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: #71717a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.set-row-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.set-row-copy strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-row-copy span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-locked {
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: #a1a1aa;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .problem-set-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .btn.lg {

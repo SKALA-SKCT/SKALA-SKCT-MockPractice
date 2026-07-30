@@ -31,9 +31,10 @@ export async function onRequestPost(context: any): Promise<Response> {
   if (existing?.owner && existing.owner !== user) {
     return json({ error: '다른 사람이 만든 문제셋은 편집할 수 없어요.' }, 403);
   }
-  // 신원·공식 여부는 서버가 강제
+  // 공식 문제셋은 관리자만 만들 수 있고, 관리자는 사설 문제셋도 만들 수 있다.
+  const isAdmin = !!context.env?.ADMIN_NICK && user === context.env.ADMIN_NICK;
   ps.owner = user;
-  ps.official = !!context.env?.ADMIN_NICK && user === context.env.ADMIN_NICK;
+  ps.official = isAdmin && ps.official === true;
   await kv.put('ps:' + ps.id, JSON.stringify(ps));
   return json({ ok: true });
 }
