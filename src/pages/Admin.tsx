@@ -79,9 +79,6 @@ export default function Admin() {
   const [ocrMsg, setOcrMsg] = useState<Partial<Record<Section, string>>>({});
   const [ocrImgs, setOcrImgs] = useState<Partial<Record<Section, StagedImg[]>>>({});
   const { user } = useAuth();
-  const requestedOfficial =
-    new URLSearchParams(window.location.search).get('type') === 'official' && !!user?.isAdmin;
-  const [officialMode, setOfficialMode] = useState(requestedOfficial);
   const canManage = (s: ProblemSet) => !s.owner || s.owner === user?.nickname;
 
   const refresh = () => store.listProblemSets().then(setSets).catch(() => setSets([]));
@@ -176,7 +173,6 @@ export default function Admin() {
     setTargetSec(45);
     setRows({});
     setEditingId(null);
-    setOfficialMode(requestedOfficial);
     setOcrImgs({});
     setOcrMsg({});
   };
@@ -197,7 +193,7 @@ export default function Admin() {
         targetPerQuestionSec: targetSec,
       },
       owner: user?.nickname,
-      official: officialMode,
+      official: !!user?.isAdmin, // 서버가 최종 결정(프로덕션)
     };
     try {
       await store.saveProblemSet(ps);
@@ -215,7 +211,6 @@ export default function Admin() {
     setChoices(ps.config.choices);
     setPerMin(Math.round(ps.config.perSectionTimeSec / 60));
     setTargetSec(ps.config.targetPerQuestionSec);
-    setOfficialMode(!!ps.official);
     setRows(rowsFromItems(ps.items));
     setMsg('편집 중…');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -236,9 +231,7 @@ export default function Admin() {
       <Link to="/" className="back">
         ← 홈
       </Link>
-      <h1>
-        {editingId ? '문제셋 편집' : officialMode ? '공식 문제셋 만들기' : '사설 문제셋 만들기'}
-      </h1>
+      <h1>{editingId ? '문제셋 편집' : '문제셋 만들기'}</h1>
       <p className="muted">
         정답표(정답 + 정답률)를 입력하세요. 정답률이 결과의 오답 패턴 분석 기준이 됩니다. 정답률을
         비워두면 50%로 처리돼요.

@@ -50,9 +50,6 @@ function Gate({ children }: { children: ReactNode }) {
                 <button type="button" role="menuitem" onClick={() => logout()}>
                   로그아웃
                 </button>
-                <a href={`${motherUrl.replace(/\/$/, '')}/settings`} role="menuitem">
-                  회원탈퇴
-                </a>
               </div>
             </div>
           </div>
