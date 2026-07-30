@@ -109,13 +109,13 @@ export default function Results() {
 
       <div className="focus-grid">
         <FocusCard
-          title="🟡 아까운 실수"
+          title="아까운 실수"
           desc="쉬운 문제(오답률 낮음)인데 틀렸어요. 여기부터 잡으면 점수가 바로 올라요."
           points={a.carelessMiss}
           emptyMsg="쉬운 문제는 다 맞혔어요. 좋습니다!"
         />
         <FocusCard
-          title="🔴 시간 관리 누수"
+          title="시간 관리 누수"
           desc="어려운 문제(오답률 높음)를 넘기지 않고 붙잡았어요. 오답·장시간부터 표시돼요."
           points={a.timeSink}
           emptyMsg="어려운 문제에 시간을 낭비하지 않았어요."
@@ -123,7 +123,7 @@ export default function Results() {
       </div>
 
       <FocusCard
-        title="🟠 어렵지 않은데 패스"
+        title="어렵지 않은데 패스"
         desc="정답률 40% 이상(어렵지 않은) 문제인데 패스했어요. 풀었다면 맞힐 가능성이 높았어요."
         points={a.riskySkips}
         emptyMsg="어렵지 않은 문제는 넘기지 않았어요. 좋습니다!"
@@ -212,13 +212,10 @@ function PrescriptionCard({ a, targetSec }: { a: Analysis; targetSec: number }) 
         점수 누수가 거의 없어요. 이제 <b>정확도 자체</b>를 올리는 단계예요.
       </>
     );
-  const emoji = rx.top.kind === 'careless' ? '🟡' : rx.top.kind === 'untouched' ? '⏳' : '👍';
-
   return (
     <section className="card rx-card">
       <h2>무엇을 고치면 점수가 오르나</h2>
       <div className={`rx-top rx-${rx.top.kind}`}>
-        <span className="rx-emoji">{emoji}</span>
         <span>{headline}</span>
       </div>
       {rx.potentialGain > 0 && (
@@ -231,13 +228,13 @@ function PrescriptionCard({ a, targetSec }: { a: Analysis; targetSec: number }) 
       )}
       <ul className="rx-leaks">
         <li>
-          🟡 쉬운데 틀림 {rx.carelessCount}개 → 실수만 없애면 <b>+{rx.recoverablePoints}점</b>
+          쉬운데 틀림 {rx.carelessCount}개 → 실수만 없애면 <b>+{rx.recoverablePoints}점</b>
         </li>
         <li>
-          ⏳ 미착수 {rx.untouchedCount}개 → 착수 시 기대 <b>+{rx.untouchedExpectedPoints}점</b>
+          미착수 {rx.untouchedCount}개 → 착수 시 기대 <b>+{rx.untouchedExpectedPoints}점</b>
         </li>
         <li>
-          🔴 어려운 오답에 {fmtTime(rx.wastedTimeSec)} 씀 = 약 {rx.reclaimableQuestions}문항 시간 →
+          어려운 오답에 {fmtTime(rx.wastedTimeSec)} 씀 = 약 {rx.reclaimableQuestions}문항 시간 →
           미착수에 재배분하면 회수 가능
         </li>
       </ul>

@@ -17,7 +17,7 @@ export default function ToolDock({ resetKey }: { resetKey?: string | number }) {
   if (!open) {
     return (
       <button className="tool-reopen" onClick={() => setOpen(true)} type="button">
-        도구 열기 ▸
+        도구 열기
       </button>
     );
   }
@@ -36,7 +36,7 @@ export default function ToolDock({ resetKey }: { resetKey?: string | number }) {
           </button>
         ))}
         <button className="tool-collapse" onClick={() => setOpen(false)} type="button" title="접기">
-          ✕
+          닫기
         </button>
       </div>
       <div className="tool-body">

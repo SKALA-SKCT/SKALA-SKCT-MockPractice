@@ -267,7 +267,7 @@ export default function Admin() {
                         disabled={busy}
                         onClick={() => removeImage(sec, i)}
                       >
-                        ✕
+                        삭제
                       </button>
                     </div>
                   ))}
@@ -361,7 +361,7 @@ export default function Admin() {
               onClick={() => toggleSection(sec)}
               type="button"
             >
-              {rows[sec] ? '✓ ' : '+ '}
+              {rows[sec] ? '선택됨 ' : '추가 '}
               {sec}
             </button>
           ))}
