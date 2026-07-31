@@ -4,24 +4,6 @@ import { useAuth } from '../auth';
 import { store } from '../store';
 import type { ProblemSet, Session } from '../types';
 
-const OFFICIAL_MOCKS = [
-  '2023년 하반기 온라인 1회',
-  '2023년 하반기 온라인 2회',
-  '2024년 상반기',
-  '2024년 하반기 1회',
-  '2024년 하반기 2회',
-  '2024년 하반기 3회',
-];
-
-const PRIVATE_MOCKS = [
-  '언어이해 집중 연습',
-  '자료해석 집중 연습',
-  '창의수리 집중 연습',
-  '종합 문제 연습',
-];
-
-const DEV_SAMPLE_ID = 'dev-sample-a';
-
 export default function Home() {
   const [sets, setSets] = useState<ProblemSet[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -35,13 +17,7 @@ export default function Home() {
         store.listProblemSets(),
         store.listSessions(),
       ]);
-      let nextSets = storedSets;
-      if (import.meta.env.DEV && !storedSets.some((set) => set.id === DEV_SAMPLE_ID)) {
-        const { seedSampleProblemSet } = await import('../dev/sampleData');
-        const sample = await seedSampleProblemSet();
-        nextSets = [sample, ...storedSets];
-      }
-      setSets(nextSets);
+      setSets(storedSets);
       setSessions(nextSessions);
     } catch {
       setSets([]);
@@ -64,10 +40,6 @@ export default function Home() {
   const custom = sets.filter((s) => !s.official);
   const ownedSets = sets.filter((set) => set.owner === user?.nickname);
   const removeSet = async (id: string) => {
-    if (import.meta.env.DEV && id === DEV_SAMPLE_ID) {
-      window.alert('기본 샘플 문제셋은 삭제할 수 없습니다.');
-      return;
-    }
     if (!window.confirm('이 문제셋을 삭제할까요?')) return;
     try {
       await store.deleteProblemSet(id);
@@ -84,14 +56,12 @@ export default function Home() {
           title="공식 문제셋"
           sets={official}
           sessions={sessions}
-          mockNames={OFFICIAL_MOCKS}
           onStart={(id) => nav(`/exam/${id}`)}
         />
         <ProblemSetPanel
           title="사설 문제셋"
           sets={custom}
           sessions={sessions}
-          mockNames={PRIVATE_MOCKS}
           onStart={(id) => nav(`/exam/${id}`)}
         />
       </div>
@@ -177,19 +147,13 @@ export default function Home() {
                         </div>
                         <p className="mt-1 text-[11px] text-zinc-400">{set.items.length}문항</p>
                       </div>
-                      {import.meta.env.DEV && set.id === DEV_SAMPLE_ID ? (
-                        <span className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-400">
-                          기본
-                        </span>
-                      ) : (
-                        <button
-                          className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                          onClick={() => removeSet(set.id)}
-                          type="button"
-                        >
-                          삭제
-                        </button>
-                      )}
+                      <button
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                        onClick={() => removeSet(set.id)}
+                        type="button"
+                      >
+                        삭제
+                      </button>
                     </li>
                   ))}
                 </ol>
@@ -206,21 +170,13 @@ function ProblemSetPanel({
   title,
   sets,
   sessions,
-  mockNames,
   onStart,
 }: {
   title: string;
   sets: ProblemSet[];
   sessions: Session[];
-  mockNames: string[];
   onStart: (id: string) => void;
 }) {
-  const rows = [
-    ...sets.map((set) => ({ name: set.name, set })),
-    ...mockNames
-      .filter((name) => !sets.some((set) => set.name === name))
-      .map((name) => ({ name, set: null })),
-  ];
   const description =
     title === '공식 문제셋'
       ? '운영진이 검수한 문제셋입니다. 공식 문제셋 추가는 관리자만 가능합니다.'
@@ -246,43 +202,33 @@ function ProblemSetPanel({
         </div>
       </div>
       <ol className="m-0 flex-1 list-none px-5 py-0">
-        {rows.map((row, index) => (
-          <li className="grid min-h-[62px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline last:border-b-0" key={row.set?.id ?? `${title}-${row.name}`}>
+        {sets.map((set, index) => (
+          <li className="grid min-h-[62px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline last:border-b-0" key={set.id}>
             <span className="grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-page text-[13px] font-bold text-zinc-500">{index + 1}</span>
             <div className="min-w-0">
-              <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-semibold">{row.name}</strong>
+              <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-semibold">{set.name}</strong>
             </div>
-            {row.set ? (
-              <div className="flex items-center gap-1.5">
-                {sessions.find((session) => session.problemSetId === row.set!.id) ? (
-                  <>
-                    <button className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]" onClick={() => onStart(row.set!.id)}>
-                      재응시
-                    </button>
-                    <Link
-                      className="rounded-lg border border-hairline bg-white px-2.5 py-1.5 text-[11px] font-semibold text-ink no-underline hover:bg-page"
-                      to={`/results/${
-                        sessions.find((session) => session.problemSetId === row.set!.id)!.id
-                      }`}
-                    >
-                      결과
-                    </Link>
-                  </>
-                ) : (
-                  <button className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]" onClick={() => onStart(row.set!.id)}>
-                    응시
+            <div className="flex items-center gap-1.5">
+              {sessions.find((session) => session.problemSetId === set.id) ? (
+                <>
+                  <button className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]" onClick={() => onStart(set.id)}>
+                    재응시
                   </button>
-                )}
-              </div>
-            ) : (
-              <button
-                className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]"
-                type="button"
-                onClick={() => window.alert('서비스 준비 중입니다!')}
-              >
-                응시
-              </button>
-            )}
+                  <Link
+                    className="rounded-lg border border-hairline bg-white px-2.5 py-1.5 text-[11px] font-semibold text-ink no-underline hover:bg-page"
+                    to={`/results/${
+                      sessions.find((session) => session.problemSetId === set.id)!.id
+                    }`}
+                  >
+                    결과
+                  </Link>
+                </>
+              ) : (
+                <button className="rounded-lg border-0 bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#c90026]" onClick={() => onStart(set.id)}>
+                  응시
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ol>
