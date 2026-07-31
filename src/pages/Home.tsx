@@ -201,7 +201,12 @@ function ProblemSetPanel({
           </div>
         </div>
       </div>
-      <ol className="m-0 flex-1 list-none px-5 py-0">
+      <ol className="m-0 flex flex-1 list-none flex-col px-5 py-0">
+        {sets.length === 0 && (
+          <li className="grid flex-1 place-items-center text-base font-light text-zinc-400">
+            <span className="-translate-y-2">아직 문제셋이 없어요.</span>
+          </li>
+        )}
         {sets.map((set, index) => (
           <li className="grid min-h-[62px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline last:border-b-0" key={set.id}>
             <span className="grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-page text-[13px] font-bold text-zinc-500">{index + 1}</span>
