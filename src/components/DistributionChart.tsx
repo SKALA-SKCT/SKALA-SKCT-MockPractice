@@ -27,7 +27,7 @@ export default function DistributionChart({
 
   const plotWidth = Math.max(10, width - margin.left - margin.right);
   const plotHeight = height - margin.top - margin.bottom;
-  const counts = new Array(10).fill(0) as number[];
+  const counts = Array.from({ length: 10 }, () => 0);
 
   scores.forEach((score) => {
     const index = Math.min(9, Math.max(0, Math.floor(score / 10)));
