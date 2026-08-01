@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 // 로그인/회원가입은 마더(관문)에서만. 이 앱은 공유 세션을 확인하고, 없으면 관문으로 보낸다.
-const MOTHER_URL = (import.meta.env.VITE_MOTHER_URL as string | undefined) ?? 'http://www.skct.local';
+// 기본값은 운영 마더 URL. Git 빌드는 .env.production(gitignore)을 못 읽으므로 fallback이 곧 운영값이어야 한다.
+// 로컬 서브도메인 테스트가 필요하면 VITE_MOTHER_URL 로 override.
+const MOTHER_URL = (import.meta.env.VITE_MOTHER_URL as string | undefined) ?? 'https://www.skala-skct.com';
 
 export interface AuthUser {
   nickname: string;
