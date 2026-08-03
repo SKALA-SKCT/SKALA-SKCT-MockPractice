@@ -3,14 +3,18 @@ import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 function KeyButton({
   label,
   onClick,
-  cls = '',
+  cls = 'border border-zinc-200 bg-white',
 }: {
   label: string;
   onClick: () => void;
   cls?: string;
 }) {
   return (
-    <button className={`calc-key ${cls}`} onClick={onClick} type="button">
+    <button
+      className={`rounded-md py-2 text-sm font-medium transition hover:brightness-95 ${cls}`}
+      onClick={onClick}
+      type="button"
+    >
       {label}
     </button>
   );
@@ -282,45 +286,43 @@ export default function Calculator() {
   const shown = error ? 'Error' : eff === '' ? '0' : eff;
 
   return (
-    <div className="calc" tabIndex={0} onKeyDown={handleKey}>
-      <div className="calc-history">
+    <div className="rounded-lg border border-zinc-200 p-2.5 outline-none" tabIndex={0} onKeyDown={handleKey}>
+      <div className="mb-2 flex h-11 flex-col items-end justify-start overflow-hidden rounded-md bg-zinc-50 px-2.5 py-1.5 text-right">
+        {history.length === 0 && <p className="text-[11px] leading-4 text-zinc-300">최근 계산 기록</p>}
         {history.map((line, i) => (
-          <div className="calc-history-line" key={i}>
+          <div className="max-w-full truncate font-mono text-[11px] leading-4 text-zinc-400" key={i}>
             {line}
           </div>
         ))}
       </div>
-      <div className="calc-display">
-        <span className="calc-value">{shown}</span>
-        <span className="calc-preview">{preview != null ? `= ${preview}` : ' '}</span>
+      <div className="mb-2 flex min-h-12 flex-col justify-center overflow-x-auto whitespace-nowrap rounded-md bg-zinc-50 px-2.5 py-2 text-right font-mono tabular-nums">
+        <span className="text-xl font-semibold">{shown}</span>
+        <span className="min-h-[14px] text-[11px] text-zinc-400">{preview != null ? `= ${preview}` : ' '}</span>
       </div>
-      <div className="calc-grid">
-        <B label="C" cls="fn" onClick={clearAll} />
-        <B label="(" cls="op" onClick={() => inputParen('(')} />
-        <B label=")" cls="op" onClick={() => inputParen(')')} />
-        <B label="←" cls="fn" onClick={backspace} />
+      <div className="grid grid-cols-5 gap-1.5">
+        <B label="C" cls="col-span-3 bg-zinc-100" onClick={clearAll} />
+        <B label="(" cls="bg-zinc-100" onClick={() => inputParen('(')} />
+        <B label=")" cls="bg-zinc-100" onClick={() => inputParen(')')} />
 
         <B label="7" onClick={() => inputDigit('7')} />
         <B label="8" onClick={() => inputDigit('8')} />
         <B label="9" onClick={() => inputDigit('9')} />
-        <B label="÷" cls="op" onClick={() => inputOp('÷')} />
+        <B label="÷" cls="bg-zinc-100" onClick={() => inputOp('÷')} />
+        <B label="×" cls="bg-zinc-100" onClick={() => inputOp('×')} />
 
         <B label="4" onClick={() => inputDigit('4')} />
         <B label="5" onClick={() => inputDigit('5')} />
         <B label="6" onClick={() => inputDigit('6')} />
-        <B label="×" cls="op" onClick={() => inputOp('×')} />
+        <B label="−" cls="bg-zinc-100" onClick={() => inputOp('−')} />
+        <B label="+" cls="bg-zinc-100" onClick={() => inputOp('+')} />
 
         <B label="1" onClick={() => inputDigit('1')} />
         <B label="2" onClick={() => inputDigit('2')} />
         <B label="3" onClick={() => inputDigit('3')} />
-        <B label="−" cls="op" onClick={() => inputOp('−')} />
-
-        <B label="0" onClick={() => inputDigit('0')} />
-        <B label="." onClick={inputDot} />
-        <B label="%" cls="op" onClick={() => inputOp('%')} />
-        <B label="+" cls="op" onClick={() => inputOp('+')} />
-
-        <B label="=" cls="eq" onClick={equals} />
+        <B label="%" cls="bg-zinc-100" onClick={() => inputOp('%')} />
+        <B label="=" cls="row-span-2 h-full bg-brand text-white" onClick={equals} />
+        <B label="0" cls="col-span-3 border border-zinc-200 bg-white" onClick={() => inputDigit('0')} />
+        <B label="." cls="border border-zinc-200 bg-white" onClick={inputDot} />
       </div>
     </div>
   );

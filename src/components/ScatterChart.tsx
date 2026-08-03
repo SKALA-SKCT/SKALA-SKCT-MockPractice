@@ -61,8 +61,8 @@ export default function ScatterChart({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(640);
   const [hover, setHover] = useState<{ p: Point; x: number; y: number } | null>(null);
-  const H = 380;
-  const M = { top: 16, right: 16, bottom: 44, left: 52 };
+  const H = 420;
+  const M = { top: 30, right: 18, bottom: 48, left: 56 };
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -87,6 +87,27 @@ export default function ScatterChart({
 
   const xTicks = [0, 25, 50, 75, 100];
   const yTicks = niceTicks(yTop, 4);
+  const plottedPoints = points.map((point, index) => {
+    const duplicateIndex = points
+      .slice(0, index)
+      .filter(
+        (candidate) =>
+          candidate.errorRate === point.errorRate &&
+          candidate.timeSpentSec === point.timeSpentSec &&
+          candidate.outcome === point.outcome,
+      ).length;
+    const horizontalOffset = ((duplicateIndex % 5) - 2) * 3;
+    const verticalOffset =
+      point.timeSpentSec === 0 ? 7 + (duplicateIndex % 3) * 4 : ((duplicateIndex % 3) - 1) * 3;
+    return {
+      point,
+      x: Math.min(M.left + plotW - 4, Math.max(M.left + 4, sx(point.errorRate) + horizontalOffset)),
+      y: Math.min(
+        M.top + plotH - 4,
+        Math.max(M.top + 4, sy(point.timeSpentSec) - verticalOffset),
+      ),
+    };
+  });
 
   return (
     <div className="scatter" ref={wrapRef}>
@@ -100,6 +121,14 @@ export default function ScatterChart({
           fill="var(--danger)"
           opacity={0.05}
         />
+        <rect
+          x={M.left}
+          y={M.top}
+          width={plotW}
+          height={Math.max(0, sy(targetSec) - M.top)}
+          fill="#f59e0b"
+          opacity={0.035}
+        />
 
         {/* y 그리드 + 눈금 */}
         {yTicks.map((t) => (
@@ -110,11 +139,26 @@ export default function ScatterChart({
             </text>
           </g>
         ))}
-        {/* x 눈금 */}
+        {/* x 그리드 + 눈금 */}
         {xTicks.map((t) => (
-          <text key={`x${t}`} x={sx(t)} y={M.top + plotH + 20} className="axis-tick" textAnchor="middle">
-            {t}
-          </text>
+          <g key={`x${t}`}>
+            <line
+              x1={sx(t)}
+              x2={sx(t)}
+              y1={M.top}
+              y2={M.top + plotH}
+              stroke="var(--border)"
+              opacity={0.65}
+            />
+            <text
+              x={sx(t)}
+              y={M.top + plotH + 20}
+              className="axis-tick"
+              textAnchor="middle"
+            >
+              {t}
+            </text>
+          </g>
         ))}
 
         {/* 기준선: 난이도(오답률) & 목표시간 */}
@@ -138,7 +182,6 @@ export default function ScatterChart({
         <text x={sx(hardErrorRate) + 5} y={M.top + 11} className="guide-label">
           오답률 {hardErrorRate}%↑ 어려움
         </text>
-
         {/* 축 라벨 */}
         <text x={M.left + plotW / 2} y={H - 6} className="axis-label" textAnchor="middle">
           오답률 (%) →
@@ -154,16 +197,16 @@ export default function ScatterChart({
         </text>
 
         {/* 점 */}
-        {points.map((p, i) => (
+        {plottedPoints.map(({ point, x, y }, i) => (
           <g
             key={i}
-            onMouseEnter={() => setHover({ p, x: sx(p.errorRate), y: sy(p.timeSpentSec) })}
+            onMouseEnter={() => setHover({ p: point, x, y })}
             onMouseLeave={() => setHover(null)}
             style={{ cursor: 'pointer' }}
           >
             {/* 넉넉한 히트 영역 */}
-            <circle cx={sx(p.errorRate)} cy={sy(p.timeSpentSec)} r={11} fill="transparent" />
-            <Mark x={sx(p.errorRate)} y={sy(p.timeSpentSec)} outcome={p.outcome} />
+            <circle cx={x} cy={y} r={11} fill="transparent" />
+            <Mark x={x} y={y} outcome={point.outcome} r={4.8} />
           </g>
         ))}
       </svg>
@@ -192,6 +235,7 @@ export default function ScatterChart({
               <Mark x={8} y={8} outcome={o} r={5} />
             </svg>
             {OUTCOME_META[o].label}
+            <b>{points.filter((point) => point.outcome === o).length}</b>
           </span>
         ))}
       </div>

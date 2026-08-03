@@ -31,10 +31,10 @@ interface ExamState {
 
 type Action =
   | { type: 'START_SECTION'; now: number }
-  | { type: 'SELECT'; choice: number }
+  | { type: 'SELECT'; choice: number | null }
   | { type: 'ADVANCE'; now: number; status: 'answered' | 'skipped' }
   | { type: 'END_SECTION'; now: number }
-  | { type: 'SHIFT_TIME'; delta: number }; // 일시정지 재개 시 멈춘 시간만큼 시작 시각을 밀어냄
+  | { type: 'SHIFT_SECTION_TIME'; delta: number }; // 일시정지는 영역 제한 시간에서만 제외
 
 function gradeCurrent(
   item: AnswerKeyItem,
@@ -99,12 +99,12 @@ function reducerFor(plan: Plan) {
         };
       case 'SELECT':
         return { ...state, selected: action.choice };
-      case 'SHIFT_TIME':
-        // 멈춰 있던 시간(delta)만큼 두 시작 시각을 미래로 이동 → 경과/잔여 계산에서 그 구간이 제외됨
+      case 'SHIFT_SECTION_TIME':
+        // 멈춘 구간은 영역 제한 시간에서만 제외한다.
+        // 문항 체류 시간은 일시정지 중에도 계속 누적되어야 하므로 questionStartMs는 유지한다.
         return {
           ...state,
           sectionStartMs: state.sectionStartMs + action.delta,
-          questionStartMs: state.questionStartMs + action.delta,
         };
       case 'ADVANCE': {
         const item = list[state.qIdx];
@@ -157,7 +157,7 @@ export interface ExamController {
   questionElapsedSec: number;
   answeredInSection: number;
   paused: boolean;
-  select: (choice: number) => void;
+  select: (choice: number | null) => void;
   submit: () => void;
   commitAnswer: () => void; // 대기 후 자동 확정(항상 최신 상태로 dispatch)
   skip: () => void;
@@ -187,16 +187,20 @@ export function useExam(set: ProblemSet): ExamController {
   const armedRef = useRef(false); // 현재 영역 타임아웃 1회만 처리
   const pauseStartRef = useRef<number | null>(null); // 일시정지 시작 시각
 
-  // 250ms 틱: 문항 경과·영역 잔여 시간을 실시간 갱신 (일시정지 중엔 멈춤)
+  // 250ms 틱: 문항 체류 시간은 일시정지 중에도 계속 갱신한다.
   useEffect(() => {
-    if (state.phase !== 'question' || paused) return;
+    if (state.phase !== 'question') return;
     const id = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(id);
-  }, [state.phase, state.secIdx, paused]);
+  }, [state.phase, state.secIdx]);
 
   const perSection = set.config.perSectionTimeSec;
+  // 일시정지 중에는 영역 시계만 정지 시점에 고정한다.
+  const sectionClockNow = paused ? (pauseStartRef.current ?? now) : now;
   const sectionRemainingSec =
-    state.phase === 'question' ? perSection - (now - state.sectionStartMs) / 1000 : perSection;
+    state.phase === 'question'
+      ? perSection - (sectionClockNow - state.sectionStartMs) / 1000
+      : perSection;
   const questionElapsedSec =
     state.phase === 'question' ? (now - state.questionStartMs) / 1000 : 0;
 
@@ -221,7 +225,7 @@ export function useExam(set: ProblemSet): ExamController {
     setNow(t);
     dispatch({ type: 'START_SECTION', now: t });
   };
-  const select = (choice: number) => dispatch({ type: 'SELECT', choice });
+  const select = (choice: number | null) => dispatch({ type: 'SELECT', choice });
   const submit = () => {
     if (state.selected == null) return;
     dispatch({ type: 'ADVANCE', now: Date.now(), status: 'answered' });
@@ -239,7 +243,7 @@ export function useExam(set: ProblemSet): ExamController {
     if (!paused) return;
     const delta = Date.now() - (pauseStartRef.current ?? Date.now()); // 멈춰 있던 시간
     pauseStartRef.current = null;
-    dispatch({ type: 'SHIFT_TIME', delta }); // 그만큼 시작 시각을 밀어 경과/잔여에서 제외
+    dispatch({ type: 'SHIFT_SECTION_TIME', delta }); // 영역 제한 시간에서만 일시정지 구간 제외
     setNow(Date.now());
     setPaused(false);
   };
