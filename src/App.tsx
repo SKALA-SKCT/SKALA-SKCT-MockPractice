@@ -27,9 +27,9 @@ function Gate({ children }: { children: ReactNode }) {
             <a className="text-ink no-underline transition hover:text-brand" href={motherUrl}>홈</a>
             <a className="text-ink no-underline transition hover:text-brand" href={mockUrl}>실전 모의고사</a>
             <Link className="text-brand no-underline" aria-current="page" to="/">모의고사 문제 연습</Link>
-            <button className="cursor-pointer border-0 bg-transparent p-0 font-sans text-base font-normal text-ink transition hover:text-brand" type="button" onClick={() => window.alert('서비스 준비 중입니다!')}>
+            <a className="text-ink no-underline transition hover:text-brand" href="https://tutorial.skala-skct.com">
               유형별 문제 연습
-            </button>
+            </a>
           </div>
           <div className="flex items-center justify-self-end gap-2 text-sm font-semibold">
             <div
