@@ -31,8 +31,10 @@ export async function onRequest(context: any): Promise<Response> {
     context.data.user = user;
     context.data.isAdmin = isAdmin;
 
-    // 인증 엔드포인트(me/logout)는 미인증 접근 허용, 그 외 /api/* 는 게이트
-    if (!url.pathname.startsWith('/api/auth/') && !user) return json401();
+    // 인증 엔드포인트(me/logout)와 공유 결과 조회(GET /api/shared/*)는 미인증 접근 허용, 그 외 /api/* 는 게이트
+    const isPublicSharedRead =
+      url.pathname.startsWith('/api/shared/') && request.method === 'GET';
+    if (!url.pathname.startsWith('/api/auth/') && !isPublicSharedRead && !user) return json401();
   }
 
   return next();

@@ -753,6 +753,31 @@ a:hover {
 .results-actions {
   display: flex;
   gap: 8px;
+  align-items: flex-start;
+}
+.share-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.share-url {
+  width: 220px;
+  max-width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: inherit;
+}
+.shared-owner {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.shared-owner b {
+  color: inherit;
+  font-size: 16px;
 }
 
 .tiles {
