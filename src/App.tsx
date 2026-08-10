@@ -44,7 +44,7 @@ function Gate({ children }: { children: ReactNode }) {
                 aria-expanded={accountOpen}
                 onClick={() => setAccountOpen((open) => !open)}
               >
-                {user.nickname}님
+                {user.displayName}님
               </button>
               <div
                 className={`absolute right-0 top-full z-[70] min-w-36 pt-2 text-sm transition ${

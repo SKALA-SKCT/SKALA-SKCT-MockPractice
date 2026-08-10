@@ -390,7 +390,7 @@ function RankCard({ session, a }: { session: Session; a: Analysis }) {
               </div>
               <div className="rank-percentile">백분위 {rank.percentile}</div>
               <p className="muted handle-note">
-                <b>{user?.nickname}</b>
+                <b>{user?.displayName}</b>
                 <span>같은 문제셋 최고기록 기준</span>
               </p>
             </aside>

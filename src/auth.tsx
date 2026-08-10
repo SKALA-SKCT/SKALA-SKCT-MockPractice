@@ -6,7 +6,10 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 const MOTHER_URL = (import.meta.env.VITE_MOTHER_URL as string | undefined) ?? 'https://www.skala-skct.com';
 
 export interface AuthUser {
+  /** 데이터 키로 쓰는 handle. 카카오만 쓰는 계정은 `kakao:<id>` 형태라 화면에 노출하지 않는다. */
   nickname: string;
+  /** 화면에 보여줄 이름(카카오 닉네임 등). */
+  displayName: string;
   isAdmin: boolean;
 }
 
@@ -39,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // 개발 서버(npm run dev)에는 인증 백엔드가 없어 자동 로그인(관리자로).
     if (import.meta.env.DEV) {
-      setUser({ nickname: '개발자', isAdmin: true });
+      setUser({ nickname: '개발자', displayName: '개발자', isAdmin: true });
       setLoading(false);
       return;
     }
@@ -47,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(async (r) => {
         if (r.ok) {
           const d = await r.json();
-          setUser({ nickname: d.nickname, isAdmin: !!d.isAdmin });
+          setUser({ nickname: d.nickname, displayName: d.displayName || d.nickname, isAdmin: !!d.isAdmin });
         } else setUser(null);
       })
       .catch(() => setUser(null))
