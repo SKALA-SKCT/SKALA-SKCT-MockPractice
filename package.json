@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test:calculator": "node --test tests/calculator.test.mjs",
     "preview": "vite preview",
     "pages:dev": "npm run build && wrangler pages dev dist",
     "pages:deploy": "npm run build && wrangler pages deploy dist"

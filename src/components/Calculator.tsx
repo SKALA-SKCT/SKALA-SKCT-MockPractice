@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { appendDecimal, evaluate, formatResult } from './calculatorLogic';
 
 function KeyButton({
   label,
@@ -20,124 +21,6 @@ function KeyButton({
   );
 }
 
-function fmt(n: number): string {
-  if (!isFinite(n)) return 'Error';
-  const r = parseFloat(n.toPrecision(12));
-  return String(r);
-}
-
-// ───────────────────────── 수식 평가기 ─────────────────────────
-// 재귀 하강 파서. 지원: 숫자(소수), + − × ÷ %, 괄호, 단항 +/−.
-// 우선순위: (+ −) < (× ÷ %). % 는 나머지(modulo) 연산.
-type Tok =
-  | { t: 'num'; v: number }
-  | { t: 'op'; v: '+' | '−' | '×' | '÷' | '%' }
-  | { t: 'lp' }
-  | { t: 'rp' };
-
-function tokenize(src: string): Tok[] {
-  const toks: Tok[] = [];
-  let i = 0;
-  while (i < src.length) {
-    const c = src[i];
-    if (c === ' ') {
-      i++;
-      continue;
-    }
-    if ((c >= '0' && c <= '9') || c === '.') {
-      let j = i;
-      while (j < src.length && ((src[j] >= '0' && src[j] <= '9') || src[j] === '.')) j++;
-      const num = src.slice(i, j);
-      if (num === '.' || (num.match(/\./g)?.length ?? 0) > 1) throw new Error('bad number');
-      toks.push({ t: 'num', v: parseFloat(num) });
-      i = j;
-      continue;
-    }
-    if (c === '(') toks.push({ t: 'lp' });
-    else if (c === ')') toks.push({ t: 'rp' });
-    else if (c === '+') toks.push({ t: 'op', v: '+' });
-    else if (c === '-' || c === '−') toks.push({ t: 'op', v: '−' });
-    else if (c === '*' || c === '×') toks.push({ t: 'op', v: '×' });
-    else if (c === '/' || c === '÷') toks.push({ t: 'op', v: '÷' });
-    else if (c === '%') toks.push({ t: 'op', v: '%' });
-    else throw new Error('bad char: ' + c);
-    i++;
-  }
-  return toks;
-}
-
-function evaluate(src: string): number {
-  const toks = tokenize(src);
-  let pos = 0;
-  const peek = () => toks[pos];
-
-  // expr := term (('+'|'−') term)*
-  function parseExpr(): number {
-    let v = parseTerm();
-    for (;;) {
-      const p = peek();
-      if (p?.t === 'op' && (p.v === '+' || p.v === '−')) {
-        pos++;
-        const rhs = parseTerm();
-        v = p.v === '+' ? v + rhs : v - rhs;
-      } else break;
-    }
-    return v;
-  }
-
-  // term := factor (('×'|'÷'|'%') factor)*
-  function parseTerm(): number {
-    let v = parseFactor();
-    for (;;) {
-      const p = peek();
-      if (p?.t === 'op' && (p.v === '×' || p.v === '÷' || p.v === '%')) {
-        pos++;
-        const rhs = parseFactor();
-        if (p.v === '×') v = v * rhs;
-        else if (p.v === '÷') {
-          if (rhs === 0) throw new Error('divide by zero');
-          v = v / rhs;
-        } else {
-          if (rhs === 0) throw new Error('modulo by zero');
-          v = v % rhs;
-        }
-      } else break;
-    }
-    return v;
-  }
-
-  // factor := ('+'|'−') factor | '(' expr ')' | number
-  function parseFactor(): number {
-    const p = peek();
-    if (!p) throw new Error('unexpected end');
-    if (p.t === 'op' && p.v === '−') {
-      pos++;
-      return -parseFactor();
-    }
-    if (p.t === 'op' && p.v === '+') {
-      pos++;
-      return parseFactor();
-    }
-    if (p.t === 'lp') {
-      pos++;
-      const v = parseExpr();
-      if (peek()?.t !== 'rp') throw new Error('missing )');
-      pos++;
-      return v;
-    }
-    if (p.t === 'num') {
-      pos++;
-      return p.v;
-    }
-    throw new Error('unexpected token');
-  }
-
-  const result = parseExpr();
-  if (pos !== toks.length) throw new Error('trailing tokens');
-  if (!isFinite(result)) throw new Error('not finite');
-  return result;
-}
-
 const OP_GLYPHS = '×÷+−%';
 
 export default function Calculator() {
@@ -154,7 +37,7 @@ export default function Calculator() {
   let preview: string | null = null;
   if (eff && !evaluated) {
     try {
-      const out = fmt(evaluate(eff));
+      const out = formatResult(evaluate(eff));
       if (out !== 'Error' && out !== eff) preview = out;
     } catch {
       /* 미완성 수식 → 미리보기 없음 */
@@ -173,14 +56,8 @@ export default function Calculator() {
 
   const inputDot = () => {
     setError(false);
-    if (evaluated) {
-      setExpr('0.');
-      setJustEvaluated(false);
-      return;
-    }
-    const tail = eff.match(/[0-9.]*$/)?.[0] ?? '';
-    if (tail.includes('.')) return; // 현재 숫자에 이미 소수점
-    setExpr(eff + (tail === '' ? '0.' : '.')); // 연산자/괄호 뒤면 0. 으로 시작
+    setExpr(appendDecimal(eff, evaluated));
+    if (evaluated) setJustEvaluated(false);
   };
 
   const inputOp = (op: string) => {
@@ -248,7 +125,7 @@ export default function Calculator() {
     if (error || evaluated || eff === '') return;
     let out: string;
     try {
-      out = fmt(evaluate(eff));
+      out = formatResult(evaluate(eff));
     } catch {
       out = 'Error';
     }
