@@ -96,4 +96,4 @@ src/
 functions/api/  ocr · problemsets · sessions (Cloudflare Pages Functions)
 ```
 
-> 문항 수·시간·구성은 시행 시기·계열사마다 다를 수 있어요. 관리자 설정에서 조정하세요.
+> 문항 수·시간·구성은 시행 시기·계열사마다 다를 수 있어요. 관리자 설정에서 조정하세요!
