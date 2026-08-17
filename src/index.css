@@ -1045,12 +1045,32 @@ a:hover {
 }
 .results-actions {
   display: flex;
+  align-items: flex-start;
   gap: 8px;
 }
 .results-actions .btn {
   min-height: 42px;
   border-radius: 12px;
   padding: 9px 18px;
+}
+.share-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.share-url {
+  width: 240px;
+  padding: 6px 10px;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #52525b;
+}
+.share-error {
+  max-width: 260px;
+  margin: 0;
+  font-size: 12px;
 }
 
 .attempt-tabs {
@@ -2111,8 +2131,14 @@ textarea:focus {
   }
 
   .results-actions,
-  .results-actions .btn {
+  .results-actions .btn,
+  .share-action,
+  .share-url {
     width: 100%;
+  }
+
+  .share-error {
+    max-width: none;
   }
 
   .results .tiles {

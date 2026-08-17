@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Admin from './pages/Admin';
 import Exam from './pages/Exam';
 import Results from './pages/Results';
+import SharedResults from './pages/SharedResults';
 import History from './pages/History';
 
 function Gate({ children }: { children: ReactNode }) {
@@ -73,16 +74,25 @@ function Gate({ children }: { children: ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <Gate>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/exam/:setId" element={<Exam />} />
-          <Route path="/results/:sessionId" element={<Results />} />
-          <Route path="/history" element={<History />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Gate>
+      <Routes>
+        {/* 공유된 결과는 로그인 없이 볼 수 있어야 하므로 Gate 밖에 둔다. */}
+        <Route path="/share/:token" element={<SharedResults />} />
+        <Route
+          path="*"
+          element={
+            <Gate>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/exam/:setId" element={<Exam />} />
+                <Route path="/results/:sessionId" element={<Results />} />
+                <Route path="/history" element={<History />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Gate>
+          }
+        />
+      </Routes>
     </AuthProvider>
   );
 }
