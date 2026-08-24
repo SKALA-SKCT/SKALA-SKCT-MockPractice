@@ -290,6 +290,14 @@ a:hover {
 .btn.ghost {
   background: var(--surface);
 }
+.btn.danger {
+  color: var(--primary);
+  border-color: #f4a6a6;
+  background: var(--surface);
+}
+.btn.danger:hover {
+  background: #fef2f2;
+}
 .btn.sm {
   padding: 7px 12px;
   font-size: 14px;

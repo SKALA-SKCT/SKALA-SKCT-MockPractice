@@ -58,6 +58,29 @@ export default function Results() {
     );
 
   const a = analyze(session);
+  const attemptIndex = attempts.findIndex((attempt) => attempt.id === session.id);
+  const attemptNo = attemptIndex >= 0 ? attemptIndex + 1 : attempts.length;
+
+  const removeAttempt = async () => {
+    const confirmed = window.confirm(
+      `${attemptNo}회차 응시 기록을 삭제할까요? 삭제하면 되돌릴 수 없어요.`,
+    );
+    if (!confirmed) return;
+    try {
+      await store.deleteSession(session.id);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : '기록을 삭제하지 못했어요.');
+      return;
+    }
+    const remaining = attempts.filter((attempt) => attempt.id !== session.id);
+    if (remaining.length === 0) {
+      nav('/', { replace: true });
+      return;
+    }
+    // 삭제한 회차 바로 앞 회차(없으면 첫 회차)로 이동한다.
+    const nextAttempt = remaining[Math.max(0, attemptIndex - 1)];
+    nav(`/results/${nextAttempt.id}`, { replace: true });
+  };
 
   return (
     <div className="page results">
@@ -76,6 +99,9 @@ export default function Results() {
           <ShareButton key={session.id} sessionId={session.id} />
           <button className="btn primary" onClick={() => nav(`/exam/${session.problemSetId}`)}>
             재응시
+          </button>
+          <button className="btn danger" onClick={removeAttempt}>
+            이 회차 삭제
           </button>
         </div>
       </header>
