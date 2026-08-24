@@ -51,14 +51,22 @@ export default function Home() {
 
   return (
     <div className="mx-auto min-h-[calc(100vh-68px)] w-full max-w-[1248px] px-6 pb-10 pt-5">
-      <div className="mb-5">
-        <h1 className="m-0 text-2xl font-semibold tracking-tight text-ink">
-          모의고사 문제 연습
-        </h1>
-        <p className="mb-0 mt-2 text-sm leading-6 text-zinc-500">
-          원하는 문제셋을 선택해 답안을 입력하고 문항별 풀이 시간과 오답
-          유형을 확인하며 연습할 수 있습니다.
-        </p>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="m-0 text-2xl font-semibold tracking-tight text-ink">
+            모의고사 문제 연습
+          </h1>
+          <p className="mb-0 mt-2 text-sm leading-6 text-zinc-500">
+            원하는 문제셋을 선택해 답안을 입력하고 문항별 풀이 시간과 오답
+            유형을 확인하며 연습할 수 있습니다.
+          </p>
+        </div>
+        <Link
+          className="shrink-0 whitespace-nowrap rounded-lg border border-hairline bg-white px-3.5 py-2 text-sm font-semibold text-ink no-underline transition hover:bg-page"
+          to="/history"
+        >
+          지난 응시 기록
+        </Link>
       </div>
       <div className="grid min-h-[calc(100vh-216px)] grid-cols-2 gap-5 max-[900px]:grid-cols-1">
         <ProblemSetPanel
