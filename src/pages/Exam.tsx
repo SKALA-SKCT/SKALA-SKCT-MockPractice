@@ -144,7 +144,8 @@ function SectionIntro({
         </p>
         <ul className="mx-auto mt-4 max-w-xs space-y-1 text-left text-xs text-zinc-400">
           <li>· 다음 문항으로 이동하면 이전 문항으로 돌아갈 수 없습니다.</li>
-          <li>· 메모장/그림판은 문제를 넘기면 지워집니다.</li>
+          <li>· 헷갈리는 문제는 별표(아리까리)로 표시하면 결과에서 모아 볼 수 있어요.</li>
+          <li>· 메모는 문제별로 저장돼 결과에서 볼 수 있어요. 그림판은 넘기면 지워집니다.</li>
           <li>· 시간이 끝나면 자동 제출됩니다.</li>
         </ul>
         <button
@@ -308,11 +309,25 @@ function Question({ exam, setName }: { exam: ExamController; setName: string }) 
               </button>
             ))}
           </div>
-          <div className="mt-6 flex items-center justify-end max-[760px]:mt-2">
+          <div className="mt-6 flex items-center justify-between gap-2 max-[760px]:mt-2">
+            <button
+              type="button"
+              onClick={exam.toggleFlag}
+              aria-pressed={exam.flagged}
+              title="헷갈리는 문제를 표시하면 결과에서 모아 볼 수 있어요"
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-semibold transition max-[760px]:px-2 max-[760px]:py-2 ${
+                exam.flagged
+                  ? 'border-amber-400 bg-amber-50 text-amber-700'
+                  : 'border-zinc-200 text-zinc-500 hover:border-zinc-400'
+              }`}
+            >
+              <span aria-hidden="true">{exam.flagged ? '★' : '☆'}</span>
+              아리까리
+            </button>
             <button
               type="button"
               onClick={doNext}
-              className={`rounded-lg px-6 py-2.5 text-sm font-semibold text-white max-[760px]:w-full max-[760px]:px-1 max-[760px]:py-2 ${
+              className={`rounded-lg px-6 py-2.5 text-sm font-semibold text-white max-[760px]:px-3 max-[760px]:py-2 ${
                 isLastQuestion ? 'bg-ink hover:bg-brand' : 'bg-brand hover:bg-[#c90026]'
               }`}
             >
@@ -323,7 +338,7 @@ function Question({ exam, setName }: { exam: ExamController; setName: string }) 
 
         <aside className="sticky top-20 w-[400px]">
           <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <ToolDock resetKey={resetKey} />
+            <ToolDock resetKey={resetKey} memo={exam.memo} onMemoChange={exam.setMemo} />
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"

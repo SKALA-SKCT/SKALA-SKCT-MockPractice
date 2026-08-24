@@ -50,7 +50,7 @@ export default function SharedResults() {
           </p>
         </div>
       </header>
-      <ResultsReport session={session} />
+      <ResultsReport session={session} showPersonalNotes={false} />
     </div>
   );
 }

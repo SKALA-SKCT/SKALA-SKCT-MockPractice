@@ -49,6 +49,8 @@ export interface QuestionResult {
   correct: boolean | null; // 채점 결과(미응답이면 null)
   answer: number; // 정답(복기용)
   correctRate: number; // 정답률(분석용)
+  flagged?: boolean; // 응시 중 "아리까리"로 별표 표시한 문항
+  memo?: string; // 응시 중 이 문항에 남긴 메모(비어 있으면 저장 안 함)
 }
 
 export interface Session {

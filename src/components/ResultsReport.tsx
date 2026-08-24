@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { Session } from '../types';
+import type { QuestionResult, Session } from '../types';
 import {
   analyze,
   difficultyBands,
@@ -15,9 +15,11 @@ import ScatterChart, { OUTCOME_META } from './ScatterChart';
 export default function ResultsReport({
   session,
   rankSlot,
+  showPersonalNotes = true,
 }: {
   session: Session;
   rankSlot?: ReactNode;
+  showPersonalNotes?: boolean; // 별표·메모는 개인 복기용 → 공유 페이지에선 숨긴다
 }) {
   const a = analyze(session);
   const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -82,6 +84,9 @@ export default function ResultsReport({
       />
 
       <UntouchedCard analysis={a} />
+
+      {showPersonalNotes && <FlaggedCard results={session.results} />}
+      {showPersonalNotes && <MemoCard results={session.results} />}
 
       <PerQuestionTimes analysis={a} />
     </>
@@ -321,6 +326,82 @@ function UntouchedCard({ analysis }: { analysis: Analysis }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+/** 복기 카드에서 한 문항의 처리 결과를 라벨·색으로 표현. */
+function outcomeMeta(r: QuestionResult): { label: string; color: string } {
+  if (r.status === 'untouched') return { label: '미착수', color: '#a1a1aa' };
+  if (r.status === 'skipped') return { label: '패스', color: '#f59e0b' };
+  return r.correct ? { label: '정답', color: '#16a34a' } : { label: '오답', color: '#dc2626' };
+}
+
+function FlaggedCard({ results }: { results: QuestionResult[] }) {
+  const flagged = results.filter((r) => r.flagged);
+  if (flagged.length === 0) return null;
+  return (
+    <section className="card focus-card">
+      <h2>
+        아리까리 표시한 문제 <span className="count-badge">{flagged.length}</span>
+      </h2>
+      <p className="muted card-desc">
+        응시 중 헷갈려서 별표한 문항이에요. 정답과 함께 다시 확인해 보세요.
+      </p>
+      <ul className="q-rows q-rows-grid">
+        {flagged.map((r) => {
+          const meta = outcomeMeta(r);
+          return (
+            <li className="q-row" key={`${r.section}:${r.number}`}>
+              <span className="q-row-id">
+                {r.section} <b>{r.number}번</b>
+              </span>
+              <span className="q-row-tags">
+                <span className="tag" style={{ color: meta.color }}>
+                  {meta.label}
+                </span>
+                <span className="tag">{fmtTime(r.timeSpentSec)}</span>
+                <span className="tag">
+                  {r.userAnswer != null ? `내답 ${r.userAnswer} / 정답 ${r.answer}` : `정답 ${r.answer}`}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function MemoCard({ results }: { results: QuestionResult[] }) {
+  const memoed = results.filter((r) => r.memo && r.memo.trim());
+  if (memoed.length === 0) return null;
+  return (
+    <section className="card">
+      <h2>
+        문제별 메모 <span className="count-badge">{memoed.length}</span>
+      </h2>
+      <p className="muted card-desc">
+        응시 중 문항마다 남긴 메모예요. 어떤 식으로 풀었는지 되짚어 보세요.
+      </p>
+      <ul className="memo-list">
+        {memoed.map((r) => {
+          const meta = outcomeMeta(r);
+          return (
+            <li className="memo-item" key={`${r.section}:${r.number}`}>
+              <div className="memo-item-head">
+                <span className="q-row-id">
+                  {r.section} <b>{r.number}번</b>
+                </span>
+                <span className="tag" style={{ color: meta.color }}>
+                  {meta.label}
+                </span>
+              </div>
+              <p className="memo-item-text">{r.memo}</p>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

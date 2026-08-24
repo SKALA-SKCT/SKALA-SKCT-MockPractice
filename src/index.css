@@ -1257,6 +1257,36 @@ a:hover {
   font-variant-numeric: tabular-nums;
 }
 
+.memo-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.memo-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 12px 14px;
+}
+.memo-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.memo-item-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink, #27272a);
+}
+
 .untouched-groups {
   display: grid;
   gap: 12px;

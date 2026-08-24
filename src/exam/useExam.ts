@@ -24,6 +24,8 @@ interface ExamState {
   secIdx: number;
   qIdx: number;
   selected: number | null;
+  flagged: boolean; // 현재 문항 "아리까리" 별표 여부(문항마다 초기화)
+  memo: string; // 현재 문항 메모(문항마다 초기화)
   sectionStartMs: number;
   questionStartMs: number;
   results: QuestionResult[];
@@ -32,9 +34,11 @@ interface ExamState {
 type Action =
   | { type: 'START_SECTION'; now: number }
   | { type: 'SELECT'; choice: number | null }
+  | { type: 'TOGGLE_FLAG' }
+  | { type: 'SET_MEMO'; memo: string }
   | { type: 'ADVANCE'; now: number; status: 'answered' | 'skipped' }
   | { type: 'END_SECTION'; now: number }
-  | { type: 'SHIFT_SECTION_TIME'; delta: number }; // 일시정지는 영역 제한 시간에서만 제외
+  | { type: 'SHIFT_TIME'; delta: number }; // 일시정지 구간을 영역·문항 시간에서 함께 제외
 
 function gradeCurrent(
   item: AnswerKeyItem,
@@ -42,8 +46,11 @@ function gradeCurrent(
   selected: number | null,
   status: 'answered' | 'skipped',
   timeSpentSec: number,
+  flagged: boolean,
+  memo: string,
 ): QuestionResult {
   const answered = status === 'answered' && selected != null;
+  const trimmedMemo = memo.trim();
   return {
     section,
     number: item.number,
@@ -53,6 +60,8 @@ function gradeCurrent(
     correct: answered ? selected === item.answer : null,
     answer: item.answer,
     correctRate: item.correctRate,
+    ...(flagged ? { flagged: true } : {}),
+    ...(trimmedMemo ? { memo: trimmedMemo } : {}),
   };
 }
 
@@ -77,6 +86,8 @@ function toNextSection(state: ExamState, results: QuestionResult[], plan: Plan):
       secIdx: state.secIdx + 1,
       qIdx: 0,
       selected: null,
+      flagged: false,
+      memo: '',
       results,
     };
   }
@@ -94,22 +105,36 @@ function reducerFor(plan: Plan) {
           phase: 'question',
           qIdx: 0,
           selected: null,
+          flagged: false,
+          memo: '',
           sectionStartMs: action.now,
           questionStartMs: action.now,
         };
       case 'SELECT':
         return { ...state, selected: action.choice };
-      case 'SHIFT_SECTION_TIME':
-        // 멈춘 구간은 영역 제한 시간에서만 제외한다.
-        // 문항 체류 시간은 일시정지 중에도 계속 누적되어야 하므로 questionStartMs는 유지한다.
+      case 'TOGGLE_FLAG':
+        return { ...state, flagged: !state.flagged };
+      case 'SET_MEMO':
+        return { ...state, memo: action.memo };
+      case 'SHIFT_TIME':
+        // 멈춘 구간은 영역 제한 시간과 문항 체류 시간 양쪽에서 함께 제외한다.
         return {
           ...state,
           sectionStartMs: state.sectionStartMs + action.delta,
+          questionStartMs: state.questionStartMs + action.delta,
         };
       case 'ADVANCE': {
         const item = list[state.qIdx];
         const timeSpentSec = (action.now - state.questionStartMs) / 1000;
-        const result = gradeCurrent(item, sec, state.selected, action.status, timeSpentSec);
+        const result = gradeCurrent(
+          item,
+          sec,
+          state.selected,
+          action.status,
+          timeSpentSec,
+          state.flagged,
+          state.memo,
+        );
         const results = [...state.results, result];
         if (state.qIdx + 1 < list.length) {
           return {
@@ -117,6 +142,8 @@ function reducerFor(plan: Plan) {
             results,
             qIdx: state.qIdx + 1,
             selected: null,
+            flagged: false,
+            memo: '',
             questionStartMs: action.now,
           };
         }
@@ -132,6 +159,8 @@ function reducerFor(plan: Plan) {
           state.selected,
           state.selected != null ? 'answered' : 'skipped',
           timeSpentSec,
+          state.flagged,
+          state.memo,
         );
         const rest = list.slice(state.qIdx + 1).map((it) => untouchedResult(it, sec));
         const results = [...state.results, current, ...rest];
@@ -152,12 +181,16 @@ export interface ExamController {
   questionIndex: number; // 0-base
   questionsInSection: number;
   selected: number | null;
+  flagged: boolean;
+  memo: string;
   choices: number;
   sectionRemainingSec: number;
   questionElapsedSec: number;
   answeredInSection: number;
   paused: boolean;
   select: (choice: number | null) => void;
+  toggleFlag: () => void;
+  setMemo: (memo: string) => void;
   submit: () => void;
   commitAnswer: () => void; // 대기 후 자동 확정(항상 최신 상태로 dispatch)
   skip: () => void;
@@ -176,6 +209,8 @@ export function useExam(set: ProblemSet): ExamController {
     secIdx: 0,
     qIdx: 0,
     selected: null,
+    flagged: false,
+    memo: '',
     sectionStartMs: 0,
     questionStartMs: 0,
     results: [],
@@ -195,14 +230,14 @@ export function useExam(set: ProblemSet): ExamController {
   }, [state.phase, state.secIdx]);
 
   const perSection = set.config.perSectionTimeSec;
-  // 일시정지 중에는 영역 시계만 정지 시점에 고정한다.
-  const sectionClockNow = paused ? (pauseStartRef.current ?? now) : now;
+  // 일시정지 중에는 영역·문항 시계를 정지 시점에 함께 고정한다.
+  const clockNow = paused ? (pauseStartRef.current ?? now) : now;
   const sectionRemainingSec =
     state.phase === 'question'
-      ? perSection - (sectionClockNow - state.sectionStartMs) / 1000
+      ? perSection - (clockNow - state.sectionStartMs) / 1000
       : perSection;
   const questionElapsedSec =
-    state.phase === 'question' ? (now - state.questionStartMs) / 1000 : 0;
+    state.phase === 'question' ? (clockNow - state.questionStartMs) / 1000 : 0;
 
   // 영역 시간 종료 → 자동 마감 (영역당 1회, 일시정지 중엔 마감 안 함)
   useEffect(() => {
@@ -226,6 +261,8 @@ export function useExam(set: ProblemSet): ExamController {
     dispatch({ type: 'START_SECTION', now: t });
   };
   const select = (choice: number | null) => dispatch({ type: 'SELECT', choice });
+  const toggleFlag = () => dispatch({ type: 'TOGGLE_FLAG' });
+  const setMemo = (memo: string) => dispatch({ type: 'SET_MEMO', memo });
   const submit = () => {
     if (state.selected == null) return;
     dispatch({ type: 'ADVANCE', now: Date.now(), status: 'answered' });
@@ -243,7 +280,7 @@ export function useExam(set: ProblemSet): ExamController {
     if (!paused) return;
     const delta = Date.now() - (pauseStartRef.current ?? Date.now()); // 멈춰 있던 시간
     pauseStartRef.current = null;
-    dispatch({ type: 'SHIFT_SECTION_TIME', delta }); // 영역 제한 시간에서만 일시정지 구간 제외
+    dispatch({ type: 'SHIFT_TIME', delta }); // 영역·문항 시간에서 일시정지 구간 제외
     setNow(Date.now());
     setPaused(false);
   };
@@ -272,12 +309,16 @@ export function useExam(set: ProblemSet): ExamController {
     questionIndex: state.qIdx,
     questionsInSection: list.length,
     selected: state.selected,
+    flagged: state.flagged,
+    memo: state.memo,
     choices: set.config.choices,
     sectionRemainingSec: Math.max(0, sectionRemainingSec),
     questionElapsedSec,
     answeredInSection,
     paused,
     select,
+    toggleFlag,
+    setMemo,
     submit,
     commitAnswer,
     skip,

@@ -1,22 +1,33 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import Calculator from './Calculator';
 
-function MemoTextarea() {
-  const [memo, setMemo] = useState('');
-
+function MemoTextarea({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <textarea
-      value={memo}
-      onChange={(event) => setMemo(event.target.value)}
-      placeholder="다음 문제로 넘어가면 지워집니다"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder="이 문제 메모는 저장돼 결과에서 다시 볼 수 있어요"
       className="block h-full w-full resize-none border-0 bg-white px-3 py-2.5 text-sm outline-none"
     />
   );
 }
 
-export default function ToolDock({ resetKey }: { resetKey?: string | number }) {
+export default function ToolDock({
+  resetKey,
+  memo,
+  onMemoChange,
+}: {
+  resetKey?: string | number;
+  memo: string;
+  onMemoChange: (value: string) => void;
+}) {
   const [tab, setTab] = useState<'memo' | 'draw'>('memo');
-  const [memoReset, setMemoReset] = useState(0);
   const [drawTool, setDrawTool] = useState<'pen' | 'eraser'>('pen');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
@@ -117,7 +128,7 @@ export default function ToolDock({ resetKey }: { resetKey?: string | number }) {
           <button
             type="button"
             onClick={() => {
-              if (tab === 'memo') setMemoReset((value) => value + 1);
+              if (tab === 'memo') onMemoChange('');
               else clearCanvas();
             }}
             className="ml-auto shrink-0 px-2 py-1.5 text-xs text-zinc-400 hover:text-zinc-600"
@@ -127,7 +138,7 @@ export default function ToolDock({ resetKey }: { resetKey?: string | number }) {
         </div>
         <div className="h-44 overflow-hidden rounded-b-lg">
           {tab === 'memo' ? (
-            <MemoTextarea key={`${resetKey}:${memoReset}`} />
+            <MemoTextarea value={memo} onChange={onMemoChange} />
           ) : (
             <canvas
               ref={canvasRef}
