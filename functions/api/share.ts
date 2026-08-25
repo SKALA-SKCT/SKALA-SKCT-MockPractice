@@ -23,6 +23,19 @@ function regrade(session: any, set: any): any {
   return { ...session, results };
 }
 
+// 공유 스냅샷에서 개인 복기 데이터(총평·문항별 메모·별표)를 제거한다.
+// 공유 페이지 화면에서 숨기는 것과 별개로, 공유 JSON 자체에 개인 메모가 남지 않게 한다.
+function stripPersonal(session: any): any {
+  const { review, ...rest } = session ?? {};
+  const results = Array.isArray(session?.results)
+    ? session.results.map((r: any) => {
+        const { memo, flagged, ...keep } = r;
+        return keep;
+      })
+    : session?.results;
+  return { ...rest, results };
+}
+
 export async function onRequestPost(context: any): Promise<Response> {
   const kv = context.env?.SKCT_KV;
   const user: string | undefined = context.data?.user;
@@ -35,7 +48,7 @@ export async function onRequestPost(context: any): Promise<Response> {
   const stored = await kv.get(`sess:${user}:${sessionId}`, 'json');
   if (!stored) return json({ error: '결과를 찾을 수 없습니다.' }, 404);
   const set = await kv.get(`ps:${stored.problemSetId}`, 'json');
-  const session = regrade(stored, set);
+  const session = stripPersonal(regrade(stored, set));
 
   const mapKey = `shareof:${user}:${sessionId}`;
   let token: string | null = await kv.get(mapKey);

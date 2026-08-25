@@ -1295,6 +1295,79 @@ a:hover {
   color: var(--ink, #27272a);
 }
 
+.review-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.review-status {
+  font-size: 12px;
+}
+.review-block {
+  margin-top: 12px;
+}
+.review-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.review-textarea {
+  display: block;
+  width: 100%;
+  min-height: 92px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.review-textarea:focus {
+  outline: none;
+  border-color: #f4a6a6;
+}
+.review-groups {
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+}
+.review-group-head {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.review-q-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.review-q-label {
+  padding-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #71717a;
+}
+.review-textarea-sm {
+  min-height: 44px;
+  margin-top: 0;
+}
+
 .untouched-groups {
   display: grid;
   gap: 12px;

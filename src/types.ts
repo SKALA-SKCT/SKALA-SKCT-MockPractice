@@ -53,6 +53,12 @@ export interface QuestionResult {
   memo?: string; // 응시 중 이 문항에 남긴 메모(비어 있으면 저장 안 함)
 }
 
+/** 결과 페이지에서 복기하며 남기는 메모(응시 중 메모와 별개, 나중에 편집 가능). */
+export interface SessionReview {
+  overall?: string; // 총평 메모
+  perQuestion?: Record<string, string>; // "섹션:번호" → 문항별 복기 메모
+}
+
 export interface Session {
   id: string;
   problemSetId: string;
@@ -61,4 +67,5 @@ export interface Session {
   finishedAt: string; // ISO
   config: ProblemSetConfig;
   results: QuestionResult[];
+  review?: SessionReview; // 결과 페이지에서 남긴 복기 메모(개인용)
 }
