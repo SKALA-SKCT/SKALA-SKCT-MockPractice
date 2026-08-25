@@ -16,10 +16,17 @@ export default function ResultsReport({
   session,
   rankSlot,
   showPersonalNotes = true,
+  questionMemo,
+  onQuestionMemoChange,
+  onQuestionMemoBlur,
 }: {
   session: Session;
   rankSlot?: ReactNode;
   showPersonalNotes?: boolean; // 별표·메모는 개인 복기용 → 공유 페이지에선 숨긴다
+  // 문항별 복기 메모 편집(내 결과 페이지에서만 전달) — 공유 페이지엔 넘기지 않아 비활성.
+  questionMemo?: Record<string, string>;
+  onQuestionMemoChange?: (key: string, value: string) => void;
+  onQuestionMemoBlur?: () => void;
 }) {
   const a = analyze(session);
   const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -88,7 +95,12 @@ export default function ResultsReport({
       {showPersonalNotes && <FlaggedCard results={session.results} />}
       {showPersonalNotes && <MemoCard results={session.results} />}
 
-      <PerQuestionTimes analysis={a} />
+      <PerQuestionTimes
+        analysis={a}
+        questionMemo={questionMemo}
+        onQuestionMemoChange={onQuestionMemoChange}
+        onQuestionMemoBlur={onQuestionMemoBlur}
+      />
     </>
   );
 }
@@ -406,16 +418,36 @@ function MemoCard({ results }: { results: QuestionResult[] }) {
   );
 }
 
-function PerQuestionTimes({ analysis }: { analysis: Analysis }) {
+function PerQuestionTimes({
+  analysis,
+  questionMemo,
+  onQuestionMemoChange,
+  onQuestionMemoBlur,
+}: {
+  analysis: Analysis;
+  questionMemo?: Record<string, string>;
+  onQuestionMemoChange?: (key: string, value: string) => void;
+  onQuestionMemoBlur?: () => void;
+}) {
+  const editable = !!onQuestionMemoChange;
   const [openSections, setOpenSections] = useState(
     () => new Set<string>(analysis.sections.map((section) => section.section)),
   );
+  const [openMemos, setOpenMemos] = useState(() => new Set<string>());
 
   const toggleSection = (section: string) => {
     setOpenSections((current) => {
       const next = new Set(current);
       if (next.has(section)) next.delete(section);
       else next.add(section);
+      return next;
+    });
+  };
+  const toggleMemo = (key: string) => {
+    setOpenMemos((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -460,6 +492,9 @@ function PerQuestionTimes({ analysis }: { analysis: Analysis }) {
             <ul className="qt-list" hidden={!isOpen}>
               {ps.map((p) => {
                 const meta = OUTCOME_META[p.outcome];
+                const memoKey = `${p.section}:${p.number}`;
+                const memoValue = questionMemo?.[memoKey] ?? '';
+                const memoOpen = openMemos.has(memoKey);
                 return (
                   <li key={p.number} className="qt-row">
                     <span className="qt-dot" style={{ background: meta.color }} title={meta.label} />
@@ -471,6 +506,25 @@ function PerQuestionTimes({ analysis }: { analysis: Analysis }) {
                         ? `내답 ${p.userAnswer} · 정답 ${p.answer}`
                         : `${meta.label} · 정답 ${p.answer}`}
                     </span>
+                    {editable && (
+                      <button
+                        type="button"
+                        className={`qt-memo-toggle${memoValue.trim() ? ' has' : ''}`}
+                        aria-expanded={memoOpen}
+                        onClick={() => toggleMemo(memoKey)}
+                      >
+                        {memoValue.trim() ? '메모 ●' : '＋ 메모'}
+                      </button>
+                    )}
+                    {editable && memoOpen && (
+                      <textarea
+                        className="qt-memo-input"
+                        value={memoValue}
+                        placeholder="이 문항 복기 메모"
+                        onChange={(event) => onQuestionMemoChange?.(memoKey, event.target.value)}
+                        onBlur={onQuestionMemoBlur}
+                      />
+                    )}
                   </li>
                 );
               })}

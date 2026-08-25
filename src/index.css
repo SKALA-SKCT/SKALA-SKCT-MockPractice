@@ -1339,33 +1339,40 @@ a:hover {
   outline: none;
   border-color: #f4a6a6;
 }
-.review-groups {
-  display: grid;
-  gap: 14px;
-  margin-top: 8px;
-}
-.review-group-head {
-  margin-bottom: 6px;
-  font-size: 13px;
+.qt-memo-toggle {
+  flex-basis: 100%;
+  order: 1;
+  padding: 2px 0 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
   font-weight: 700;
+  color: #a1a1aa;
+  text-align: left;
+  cursor: pointer;
+}
+.qt-memo-toggle.has {
   color: var(--primary);
 }
-.review-q-row {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  align-items: start;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.review-q-label {
-  padding-top: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #71717a;
-}
-.review-textarea-sm {
+.qt-memo-input {
+  flex-basis: 100%;
+  order: 2;
+  width: 100%;
   min-height: 44px;
-  margin-top: 0;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.qt-memo-input:focus {
+  outline: none;
+  border-color: #f4a6a6;
 }
 
 .untouched-groups {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { store } from '../store';
-import type { Session } from '../types';
+import type { Session, SessionReview } from '../types';
 import { analyze, fmtTime } from '../analytics';
 import { recomputeSession } from '../recompute';
 import { computeRank, fetchScores, scorePctOf, submitCohort, type RankResult } from '../cohort';
@@ -14,16 +14,22 @@ export default function Results() {
   const { sessionId } = useParams();
   const nav = useNavigate();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  // 재채점 전 원본 세션 — 복기 메모는 여기에 저장해 스냅샷 비파괴 원칙을 지킨다.
-  const [rawSession, setRawSession] = useState<Session | null>(null);
   const [attempts, setAttempts] = useState<Session[]>([]);
+  // 복기 메모: 재채점 전 원본 세션(rawRef)에 저장해 스냅샷 비파괴 원칙을 지킨다.
+  const rawRef = useRef<Session | null>(null);
+  const reviewRef = useRef<SessionReview>({});
+  const [review, setReview] = useState<SessionReview>({});
+  const [reviewStatus, setReviewStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   useEffect(() => {
     if (!sessionId) return;
     let alive = true;
     (async () => {
       setSession(undefined);
-      setRawSession(null);
+      rawRef.current = null;
+      reviewRef.current = {};
+      setReview({});
+      setReviewStatus('idle');
       const [s, allSessions] = await Promise.all([
         store.getSession(sessionId),
         store.listSessions().catch(() => []),
@@ -34,7 +40,9 @@ export default function Results() {
         setAttempts([]);
         return;
       }
-      setRawSession(s);
+      rawRef.current = s;
+      reviewRef.current = s.review ?? {};
+      setReview(reviewRef.current);
       setAttempts(
         allSessions
           .filter((candidate) => candidate.problemSetId === s.problemSetId)
@@ -49,6 +57,41 @@ export default function Results() {
       alive = false;
     };
   }, [sessionId]);
+
+  const applyReview = (next: SessionReview) => {
+    reviewRef.current = next;
+    setReview(next);
+  };
+  const setOverall = (value: string) => applyReview({ ...reviewRef.current, overall: value });
+  const setQuestionMemo = (key: string, value: string) =>
+    applyReview({
+      ...reviewRef.current,
+      perQuestion: { ...(reviewRef.current.perQuestion ?? {}), [key]: value },
+    });
+  const saveReview = async () => {
+    const raw = rawRef.current;
+    if (!raw) return;
+    const current = reviewRef.current;
+    const overall = current.overall?.trim();
+    const perQuestion: Record<string, string> = {};
+    for (const [key, value] of Object.entries(current.perQuestion ?? {})) {
+      if (value.trim()) perQuestion[key] = value;
+    }
+    const cleaned: SessionReview = {
+      ...(overall ? { overall } : {}),
+      ...(Object.keys(perQuestion).length ? { perQuestion } : {}),
+    };
+    const updated: Session = { ...raw, review: cleaned };
+    setReviewStatus('saving');
+    try {
+      await store.saveSession(updated);
+      rawRef.current = updated;
+      setSession((prev) => (prev ? { ...prev, review: cleaned } : prev));
+      setReviewStatus('saved');
+    } catch {
+      setReviewStatus('idle');
+    }
+  };
 
   if (session === undefined) return <div className="page">불러오는 중…</div>;
   if (session === null)
@@ -124,144 +167,55 @@ export default function Results() {
         ))}
       </nav>
 
-      {rawSession && (
-        <ReviewNotes
-          key={rawSession.id}
-          rawSession={rawSession}
-          onSaved={(updated) => {
-            setRawSession(updated);
-            setSession((current) =>
-              current ? { ...current, review: updated.review } : current,
-            );
-          }}
-        />
-      )}
+      <OverallReviewNote
+        value={review.overall ?? ''}
+        onChange={setOverall}
+        onBlur={saveReview}
+        status={reviewStatus}
+      />
 
-      <ResultsReport session={session} rankSlot={<RankCard key={session.id} session={session} />} />
+      <ResultsReport
+        session={session}
+        rankSlot={<RankCard key={session.id} session={session} />}
+        questionMemo={review.perQuestion}
+        onQuestionMemoChange={setQuestionMemo}
+        onQuestionMemoBlur={saveReview}
+      />
     </div>
   );
 }
 
-function ReviewNotes({
-  rawSession,
-  onSaved,
+function OverallReviewNote({
+  value,
+  onChange,
+  onBlur,
+  status,
 }: {
-  rawSession: Session;
-  onSaved: (updated: Session) => void;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+  status: 'idle' | 'saving' | 'saved';
 }) {
-  const [overall, setOverall] = useState(rawSession.review?.overall ?? '');
-  const [perQ, setPerQ] = useState<Record<string, string>>(() => ({
-    ...(rawSession.review?.perQuestion ?? {}),
-  }));
-  const [showOverall, setShowOverall] = useState(true);
-  const [showPerQ, setShowPerQ] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-
-  const persist = async (nextOverall: string, nextPerQ: Record<string, string>) => {
-    const overallTrimmed = nextOverall.trim();
-    const perQuestion: Record<string, string> = {};
-    for (const [key, value] of Object.entries(nextPerQ)) {
-      if (value.trim()) perQuestion[key] = value;
-    }
-    const review = {
-      ...(overallTrimmed ? { overall: overallTrimmed } : {}),
-      ...(Object.keys(perQuestion).length ? { perQuestion } : {}),
-    };
-    const updated: Session = { ...rawSession, review };
-    setStatus('saving');
-    try {
-      await store.saveSession(updated);
-      onSaved(updated);
-      setStatus('saved');
-    } catch {
-      setStatus('idle');
-    }
-  };
-
-  const groups: { section: string; numbers: number[] }[] = [];
-  for (const r of rawSession.results) {
-    let group = groups.find((g) => g.section === r.section);
-    if (!group) {
-      group = { section: r.section, numbers: [] };
-      groups.push(group);
-    }
-    if (!group.numbers.includes(r.number)) group.numbers.push(r.number);
-  }
-
   return (
     <section className="card review-card">
       <div className="review-head">
-        <h2>복기 메모</h2>
+        <h2>총평 메모</h2>
         <span className="review-status muted" aria-live="polite">
           {status === 'saving' ? '저장 중…' : status === 'saved' ? '저장됨' : ''}
         </span>
       </div>
       <p className="muted card-desc">
-        결과를 보며 깨달은 점을 적어두면 다음 응시 때 다시 볼 수 있어요. 입력하면 자동 저장돼요.
+        이번 회차를 보며 깨달은 점을 적어두면 다음 응시 때 다시 볼 수 있어요. 입력하면 자동
+        저장돼요. 문항별 메모는 아래 &lsquo;영역별 문항 소요 시간&rsquo;의 각 문항에서 열 수
+        있어요.
       </p>
-
-      <div className="review-block">
-        <button
-          type="button"
-          className="review-toggle"
-          aria-expanded={showOverall}
-          onClick={() => setShowOverall((value) => !value)}
-        >
-          <span className={`qt-chevron${showOverall ? ' open' : ''}`} aria-hidden="true">
-            ▶
-          </span>
-          <b>총평</b>
-        </button>
-        {showOverall && (
-          <textarea
-            className="review-textarea"
-            value={overall}
-            placeholder="이번 회차 전체 총평 — 잘한 점, 아쉬운 점, 다음에 고칠 점 등"
-            onChange={(event) => setOverall(event.target.value)}
-            onBlur={() => persist(overall, perQ)}
-          />
-        )}
-      </div>
-
-      <div className="review-block">
-        <button
-          type="button"
-          className="review-toggle"
-          aria-expanded={showPerQ}
-          onClick={() => setShowPerQ((value) => !value)}
-        >
-          <span className={`qt-chevron${showPerQ ? ' open' : ''}`} aria-hidden="true">
-            ▶
-          </span>
-          <b>문제별 메모</b>
-        </button>
-        {showPerQ && (
-          <div className="review-groups">
-            {groups.map((group) => (
-              <div className="review-group" key={group.section}>
-                <div className="review-group-head">{group.section}</div>
-                {group.numbers.map((number) => {
-                  const key = `${group.section}:${number}`;
-                  return (
-                    <label className="review-q-row" key={key}>
-                      <span className="review-q-label">{number}번</span>
-                      <textarea
-                        className="review-textarea review-textarea-sm"
-                        value={perQ[key] ?? ''}
-                        placeholder="이 문항 복기 메모"
-                        onChange={(event) =>
-                          setPerQ((prev) => ({ ...prev, [key]: event.target.value }))
-                        }
-                        onBlur={() => persist(overall, perQ)}
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <textarea
+        className="review-textarea"
+        value={value}
+        placeholder="이번 회차 전체 총평 — 잘한 점, 아쉬운 점, 다음에 고칠 점 등"
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+      />
     </section>
   );
 }
