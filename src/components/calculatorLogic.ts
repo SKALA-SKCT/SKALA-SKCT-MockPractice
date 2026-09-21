@@ -125,3 +125,30 @@ export function appendDecimal(expression: string, justEvaluated: boolean): strin
   if (currentNumber.includes('.')) return expression;
   return expression + (currentNumber === '' ? '0.' : '.');
 }
+
+export interface FinishedCalculation {
+  expression: string;
+  history: string[];
+  pendingRecord: string | null;
+  calculated: boolean;
+}
+
+export function finishCalculation(expression: string, history: string[]): FinishedCalculation {
+  const result = formatResult(evaluate(expression));
+  if (result === 'Error') throw new Error('invalid result');
+  return {
+    expression: result,
+    history,
+    pendingRecord: `${expression} = ${result}`,
+    calculated: true,
+  };
+}
+
+export function startNextCalculation(state: FinishedCalculation, value: string): FinishedCalculation {
+  return {
+    expression: value === '.' ? '0.' : value,
+    history: state.pendingRecord ? [...state.history, state.pendingRecord].slice(-2) : state.history,
+    pendingRecord: null,
+    calculated: false,
+  };
+}

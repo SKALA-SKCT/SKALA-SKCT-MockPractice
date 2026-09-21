@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { appendDecimal, evaluate, formatResult } from './calculatorLogic';
+import { appendDecimal, evaluate, finishCalculation, formatResult, startNextCalculation } from './calculatorLogic';
 
 function KeyButton({
   label,
@@ -28,6 +28,13 @@ export default function Calculator() {
   const [justEvaluated, setJustEvaluated] = useState(false); // = 직후 상태
   const [error, setError] = useState(false); // 마지막 평가 실패
   const [history, setHistory] = useState<string[]>([]); // 최근 2개 '식=결과'
+  const [pendingRecord, setPendingRecord] = useState<string | null>(null);
+
+  const commitPending = () => {
+    if (!pendingRecord) return;
+    setHistory((items) => [...items, pendingRecord].slice(-2));
+    setPendingRecord(null);
+  };
 
   // 오류 상태에서는 빈 수식처럼 취급해 다음 입력이 새로 시작되게 함
   const eff = error ? '' : expr;
@@ -47,7 +54,10 @@ export default function Calculator() {
   const inputDigit = (d: string) => {
     setError(false);
     if (evaluated) {
-      setExpr(d);
+      const next = startNextCalculation({ expression: eff, history, pendingRecord, calculated: true }, d);
+      setExpr(next.expression);
+      setHistory(next.history);
+      setPendingRecord(null);
       setJustEvaluated(false);
       return;
     }
@@ -56,6 +66,7 @@ export default function Calculator() {
 
   const inputDot = () => {
     setError(false);
+    if (evaluated) commitPending();
     setExpr(appendDecimal(eff, evaluated));
     if (evaluated) setJustEvaluated(false);
   };
@@ -63,6 +74,7 @@ export default function Calculator() {
   const inputOp = (op: string) => {
     setError(false);
     if (evaluated) {
+      commitPending();
       setExpr(eff + op); // 결과에서 이어 계산
       setJustEvaluated(false);
       return;
@@ -87,6 +99,7 @@ export default function Calculator() {
     setError(false);
     if (p === '(') {
       if (evaluated) {
+        commitPending();
         setExpr('(');
         setJustEvaluated(false);
         return;
@@ -112,6 +125,7 @@ export default function Calculator() {
       return;
     }
     if (evaluated) setJustEvaluated(false); // 결과를 편집 시작
+    if (evaluated) commitPending();
     setExpr(eff.slice(0, -1));
   };
 
@@ -119,18 +133,21 @@ export default function Calculator() {
     setExpr('');
     setJustEvaluated(false);
     setError(false);
+    setPendingRecord(null);
   };
 
   const equals = () => {
     if (error || evaluated || eff === '') return;
     let out: string;
     try {
-      out = formatResult(evaluate(eff));
+      const finished = finishCalculation(eff, history);
+      out = finished.expression;
+      setPendingRecord(finished.pendingRecord);
     } catch {
       out = 'Error';
     }
-    setHistory((h) => [...h, `${eff}=${out}`].slice(-2)); // 최근 2개만 유지
     if (out === 'Error') {
+      setPendingRecord(null);
       setError(true);
       setExpr('');
       setJustEvaluated(false);
