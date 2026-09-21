@@ -4,11 +4,11 @@ export function formatResult(value: number): string {
   return String(rounded);
 }
 
-// 재귀 하강 파서. 지원: 숫자(소수), + − × ÷ %, 괄호, 단항 +/−.
-// 우선순위: (+ −) < (× ÷ %). % 는 나머지(modulo) 연산.
+// 재귀 하강 파서. 지원: 숫자(소수), + − × ÷, 괄호, 단항 +/−.
+// 우선순위: (+ −) < (× ÷).
 type Token =
   | { type: 'number'; value: number }
-  | { type: 'operator'; value: '+' | '−' | '×' | '÷' | '%' }
+  | { type: 'operator'; value: '+' | '−' | '×' | '÷' }
   | { type: 'leftParenthesis' }
   | { type: 'rightParenthesis' };
 
@@ -43,8 +43,7 @@ function tokenize(source: string): Token[] {
       tokens.push({ type: 'operator', value: '×' });
     } else if (character === '/' || character === '÷') {
       tokens.push({ type: 'operator', value: '÷' });
-    } else if (character === '%') tokens.push({ type: 'operator', value: '%' });
-    else throw new Error('bad char: ' + character);
+    } else throw new Error('bad char: ' + character);
     index++;
   }
   return tokens;
@@ -72,16 +71,13 @@ export function evaluate(source: string): number {
     let value = parseFactor();
     for (;;) {
       const token = peek();
-      if (token?.type === 'operator' && (token.value === '×' || token.value === '÷' || token.value === '%')) {
+      if (token?.type === 'operator' && (token.value === '×' || token.value === '÷')) {
         position++;
         const right = parseFactor();
         if (token.value === '×') value *= right;
         else if (token.value === '÷') {
           if (right === 0) throw new Error('divide by zero');
           value /= right;
-        } else {
-          if (right === 0) throw new Error('modulo by zero');
-          value %= right;
         }
       } else break;
     }
@@ -129,7 +125,6 @@ export function appendDecimal(expression: string, justEvaluated: boolean): strin
 export interface FinishedCalculation {
   expression: string;
   history: string[];
-  pendingRecord: string | null;
   calculated: boolean;
 }
 
@@ -138,17 +133,7 @@ export function finishCalculation(expression: string, history: string[]): Finish
   if (result === 'Error') throw new Error('invalid result');
   return {
     expression: result,
-    history,
-    pendingRecord: `${expression} = ${result}`,
+    history: [...history, `${expression} = ${result}`].slice(-2),
     calculated: true,
-  };
-}
-
-export function startNextCalculation(state: FinishedCalculation, value: string): FinishedCalculation {
-  return {
-    expression: value === '.' ? '0.' : value,
-    history: state.pendingRecord ? [...state.history, state.pendingRecord].slice(-2) : state.history,
-    pendingRecord: null,
-    calculated: false,
   };
 }

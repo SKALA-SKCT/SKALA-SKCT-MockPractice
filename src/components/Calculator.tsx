@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { appendDecimal, evaluate, finishCalculation, formatResult, startNextCalculation } from './calculatorLogic';
+import { appendDecimal, evaluate, finishCalculation, formatResult } from './calculatorLogic';
 
 function KeyButton({
   label,
@@ -21,20 +21,13 @@ function KeyButton({
   );
 }
 
-const OP_GLYPHS = '×÷+−%';
+const OP_GLYPHS = '×÷+−';
 
 export default function Calculator() {
   const [expr, setExpr] = useState(''); // 입력 중인 수식(표시 글리프 그대로)
   const [justEvaluated, setJustEvaluated] = useState(false); // = 직후 상태
   const [error, setError] = useState(false); // 마지막 평가 실패
   const [history, setHistory] = useState<string[]>([]); // 최근 2개 '식=결과'
-  const [pendingRecord, setPendingRecord] = useState<string | null>(null);
-
-  const commitPending = () => {
-    if (!pendingRecord) return;
-    setHistory((items) => [...items, pendingRecord].slice(-2));
-    setPendingRecord(null);
-  };
 
   // 오류 상태에서는 빈 수식처럼 취급해 다음 입력이 새로 시작되게 함
   const eff = error ? '' : expr;
@@ -54,10 +47,7 @@ export default function Calculator() {
   const inputDigit = (d: string) => {
     setError(false);
     if (evaluated) {
-      const next = startNextCalculation({ expression: eff, history, pendingRecord, calculated: true }, d);
-      setExpr(next.expression);
-      setHistory(next.history);
-      setPendingRecord(null);
+      setExpr(d);
       setJustEvaluated(false);
       return;
     }
@@ -66,7 +56,6 @@ export default function Calculator() {
 
   const inputDot = () => {
     setError(false);
-    if (evaluated) commitPending();
     setExpr(appendDecimal(eff, evaluated));
     if (evaluated) setJustEvaluated(false);
   };
@@ -74,7 +63,6 @@ export default function Calculator() {
   const inputOp = (op: string) => {
     setError(false);
     if (evaluated) {
-      commitPending();
       setExpr(eff + op); // 결과에서 이어 계산
       setJustEvaluated(false);
       return;
@@ -85,8 +73,8 @@ export default function Calculator() {
       return;
     }
     if (OP_GLYPHS.includes(last)) {
-      if (op === '−' && '×÷%'.includes(last)) {
-        setExpr(eff + op); // ×,÷,% 뒤의 − 는 단항으로 허용
+      if (op === '−' && '×÷'.includes(last)) {
+        setExpr(eff + op); // ×,÷ 뒤의 − 는 단항으로 허용
         return;
       }
       setExpr(eff.slice(0, -1) + op); // 그 외엔 마지막 연산자 교체
@@ -99,7 +87,6 @@ export default function Calculator() {
     setError(false);
     if (p === '(') {
       if (evaluated) {
-        commitPending();
         setExpr('(');
         setJustEvaluated(false);
         return;
@@ -114,7 +101,7 @@ export default function Calculator() {
     const closes = (eff.match(/\)/g) || []).length;
     if (opens <= closes) return; // 닫을 괄호 없음
     const last = eff.slice(-1);
-    if (!last || '×÷+−%('.includes(last)) return; // 값 뒤에서만 닫기
+    if (!last || '×÷+−('.includes(last)) return; // 값 뒤에서만 닫기
     setExpr(eff + ')');
   };
 
@@ -125,7 +112,6 @@ export default function Calculator() {
       return;
     }
     if (evaluated) setJustEvaluated(false); // 결과를 편집 시작
-    if (evaluated) commitPending();
     setExpr(eff.slice(0, -1));
   };
 
@@ -133,7 +119,6 @@ export default function Calculator() {
     setExpr('');
     setJustEvaluated(false);
     setError(false);
-    setPendingRecord(null);
   };
 
   const equals = () => {
@@ -142,12 +127,11 @@ export default function Calculator() {
     try {
       const finished = finishCalculation(eff, history);
       out = finished.expression;
-      setPendingRecord(finished.pendingRecord);
+      setHistory(finished.history);
     } catch {
       out = 'Error';
     }
     if (out === 'Error') {
-      setPendingRecord(null);
       setError(true);
       setExpr('');
       setJustEvaluated(false);
@@ -166,7 +150,6 @@ export default function Calculator() {
     else if (k === '-') inputOp('−');
     else if (k === '*') inputOp('×');
     else if (k === '/') inputOp('÷');
-    else if (k === '%') inputOp('%');
     else if (k === '(') inputParen('(');
     else if (k === ')') inputParen(')');
     else if (k === 'Enter' || k === '=') equals();
@@ -213,10 +196,9 @@ export default function Calculator() {
         <B label="1" onClick={() => inputDigit('1')} />
         <B label="2" onClick={() => inputDigit('2')} />
         <B label="3" onClick={() => inputDigit('3')} />
-        <B label="%" cls="bg-zinc-100" onClick={() => inputOp('%')} />
-        <B label="=" cls="row-span-2 h-full bg-brand text-white" onClick={equals} />
-        <B label="0" cls="col-span-3 border border-zinc-200 bg-white" onClick={() => inputDigit('0')} />
         <B label="." cls="border border-zinc-200 bg-white" onClick={inputDot} />
+        <B label="=" cls="row-span-2 h-full bg-brand text-white" onClick={equals} />
+        <B label="0" cls="col-span-4 border border-zinc-200 bg-white" onClick={() => inputDigit('0')} />
       </div>
     </div>
   );
