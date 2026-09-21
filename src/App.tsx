@@ -14,6 +14,7 @@ function Gate({ children }: { children: ReactNode }) {
   const [accountOpen, setAccountOpen] = useState(false);
   const motherUrl = import.meta.env.VITE_MOTHER_URL ?? 'https://www.skala-skct.com';
   const mockUrl = import.meta.env.VITE_MOCK_URL ?? 'https://mock.skala-skct.com';
+  const communityUrl = import.meta.env.VITE_COMMUNITY_URL ?? 'https://community.skala-skct.com';
   if (loading) return <div className="page">불러오는 중…</div>;
   if (!user) return <AuthScreen />;
   return (
@@ -31,6 +32,7 @@ function Gate({ children }: { children: ReactNode }) {
             <a className="text-ink no-underline transition hover:text-brand" href="https://tutorial.skala-skct.com">
               유형별 문제 연습
             </a>
+            <a className="text-ink no-underline transition hover:text-brand" href={communityUrl}>게시판</a>
           </div>
           <div className="flex items-center justify-self-end gap-2 text-sm font-semibold">
             <div
@@ -39,7 +41,7 @@ function Gate({ children }: { children: ReactNode }) {
               onMouseLeave={() => setAccountOpen(false)}
             >
               <button
-                className="cursor-pointer rounded-lg border border-hairline bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-page"
+                className="min-h-[34px] cursor-pointer rounded-[10px] border border-hairline bg-white px-[13px] py-[7px] text-sm font-semibold leading-none text-ink transition hover:bg-page"
                 type="button"
                 aria-haspopup="menu"
                 aria-expanded={accountOpen}
