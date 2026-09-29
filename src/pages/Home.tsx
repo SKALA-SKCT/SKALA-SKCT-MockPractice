@@ -218,7 +218,7 @@ function ProblemSetPanel({
           </div>
         </div>
       </div>
-      <ol className="m-0 flex min-h-0 flex-1 list-none flex-col overflow-y-auto px-5 py-0">
+      <ol className="m-0 flex min-h-0 flex-1 list-none flex-col overflow-y-auto px-5 py-0 scrollbar-soft">
         {sets.length === 0 && (
           <li className="grid flex-1 place-items-center text-base font-light text-zinc-400">
             <span className="-translate-y-2">아직 문제셋이 없어요.</span>

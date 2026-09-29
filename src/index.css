@@ -2640,3 +2640,23 @@ body.practice-exam-active .site-header {
   }
 }
 }
+
+@utility scrollbar-soft {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgb(0 0 0 / 0.12);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgb(0 0 0 / 0.22);
+  }
+  @supports (-moz-appearance: none) {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(0 0 0 / 0.12) transparent;
+  }
+}
