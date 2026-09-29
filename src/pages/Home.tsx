@@ -68,7 +68,7 @@ export default function Home() {
           지난 응시 기록
         </Link>
       </div>
-      <div className="grid min-h-[calc(100vh-216px)] grid-cols-2 gap-5 max-[900px]:grid-cols-1">
+      <div className="grid h-[calc(100vh-216px)] min-h-[420px] grid-cols-2 grid-rows-[minmax(0,1fr)] gap-5 max-[900px]:h-auto max-[900px]:grid-cols-1 max-[900px]:grid-rows-none">
         <ProblemSetPanel
           title="공식 문제셋"
           sets={official}
@@ -200,7 +200,7 @@ function ProblemSetPanel({
       : '사용자가 직접 만든 문제셋입니다. 누구나 새 문제셋을 추가할 수 있습니다.';
 
   return (
-    <section className="flex min-h-full flex-col overflow-hidden rounded-2xl border border-hairline bg-white shadow-[0_8px_28px_rgba(32,32,32,0.055)]">
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl max-[900px]:h-[70vh] border border-hairline bg-white shadow-[0_8px_28px_rgba(32,32,32,0.055)]">
       <div className="flex min-h-14 items-center justify-between gap-4 border-b border-hairline px-5 py-3">
         <h2 className="m-0 text-base font-semibold">{title}</h2>
         <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ function ProblemSetPanel({
           </div>
         </div>
       </div>
-      <ol className="m-0 flex flex-1 list-none flex-col px-5 py-0">
+      <ol className="m-0 flex min-h-0 flex-1 list-none flex-col overflow-y-auto px-5 py-0">
         {sets.length === 0 && (
           <li className="grid flex-1 place-items-center text-base font-light text-zinc-400">
             <span className="-translate-y-2">아직 문제셋이 없어요.</span>
