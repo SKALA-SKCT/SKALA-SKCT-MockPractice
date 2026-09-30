@@ -78,6 +78,7 @@ export default function Home() {
         <ProblemSetPanel
           title="사설 문제셋"
           sets={custom}
+          searchable
           sessions={sessions}
           onStart={(id) => nav(`/exam/${id}`)}
         />
@@ -183,17 +184,31 @@ export default function Home() {
   );
 }
 
+// 띄어쓰기로 나눈 검색어가 이름에 모두 들어 있으면 표시한다 ("2024 창의" 같은 입력용).
+function matchesQuery(name: string, query: string): boolean {
+  const target = name.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((term) => target.includes(term));
+}
+
 function ProblemSetPanel({
   title,
   sets,
   sessions,
   onStart,
+  searchable = false,
 }: {
   title: string;
   sets: ProblemSet[];
   sessions: Session[];
   onStart: (id: string) => void;
+  searchable?: boolean;
 }) {
+  const [query, setQuery] = useState('');
+  const visibleSets = query.trim() ? sets.filter((set) => matchesQuery(set.name, query)) : sets;
   const description =
     title === '공식 문제셋'
       ? '운영진이 검수한 문제셋입니다. 공식 문제셋 추가는 관리자만 가능합니다.'
@@ -204,6 +219,16 @@ function ProblemSetPanel({
       <div className="flex min-h-14 items-center justify-between gap-4 border-b border-hairline px-5 py-3">
         <h2 className="m-0 text-base font-semibold">{title}</h2>
         <div className="flex items-center gap-2">
+          {searchable && (
+            <input
+              type="search"
+              aria-label={`${title} 검색`}
+              placeholder="문제셋 검색"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="h-9 w-52 rounded-[10px] border border-hairline bg-white px-3 text-[13px] text-ink outline-none transition-colors placeholder:text-zinc-400 focus:border-black/15 max-[480px]:w-36"
+            />
+          )}
           <div className="group relative">
             <button
               type="button"
@@ -219,12 +244,14 @@ function ProblemSetPanel({
         </div>
       </div>
       <ol className="m-0 flex min-h-0 flex-1 list-none flex-col overflow-y-auto px-5 py-0 scrollbar-soft">
-        {sets.length === 0 && (
+        {visibleSets.length === 0 && (
           <li className="grid flex-1 place-items-center text-base font-light text-zinc-400">
-            <span className="-translate-y-2">아직 문제셋이 없어요.</span>
+            <span className="-translate-y-2">
+              {sets.length === 0 ? '아직 문제셋이 없어요.' : '검색 결과가 없어요.'}
+            </span>
           </li>
         )}
-        {sets.map((set, index) => (
+        {visibleSets.map((set, index) => (
           <li className="grid min-h-[62px] grid-cols-[38px_minmax(0,1fr)_auto] items-center gap-3 border-b border-hairline last:border-b-0" key={set.id}>
             <span className="grid h-[38px] w-[38px] place-items-center rounded-[10px] bg-page text-[13px] font-bold text-zinc-500">{index + 1}</span>
             <div className="min-w-0">
