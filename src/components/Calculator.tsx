@@ -83,28 +83,6 @@ export default function Calculator() {
     setExpr(eff + op);
   };
 
-  const inputParen = (p: '(' | ')') => {
-    setError(false);
-    if (p === '(') {
-      if (evaluated) {
-        setExpr('(');
-        setJustEvaluated(false);
-        return;
-      }
-      const last = eff.slice(-1);
-      setExpr(eff + (last && /[0-9.)]/.test(last) ? '×(' : '(')); // 값 뒤엔 암묵적 곱
-      return;
-    }
-    // p === ')'
-    if (evaluated) return;
-    const opens = (eff.match(/\(/g) || []).length;
-    const closes = (eff.match(/\)/g) || []).length;
-    if (opens <= closes) return; // 닫을 괄호 없음
-    const last = eff.slice(-1);
-    if (!last || '×÷+−('.includes(last)) return; // 값 뒤에서만 닫기
-    setExpr(eff + ')');
-  };
-
   const backspace = () => {
     if (error) {
       setError(false);
@@ -150,8 +128,6 @@ export default function Calculator() {
     else if (k === '-') inputOp('−');
     else if (k === '*') inputOp('×');
     else if (k === '/') inputOp('÷');
-    else if (k === '(') inputParen('(');
-    else if (k === ')') inputParen(')');
     else if (k === 'Enter' || k === '=') equals();
     else if (k === 'Backspace') backspace();
     else if (k === 'Escape' || k === 'c' || k === 'C') clearAll();
@@ -177,9 +153,7 @@ export default function Calculator() {
         <span className="min-h-[14px] text-[11px] text-zinc-400">{preview != null ? `= ${preview}` : ' '}</span>
       </div>
       <div className="grid grid-cols-5 gap-1.5">
-        <B label="C" cls="col-span-3 bg-zinc-100" onClick={clearAll} />
-        <B label="(" cls="bg-zinc-100" onClick={() => inputParen('(')} />
-        <B label=")" cls="bg-zinc-100" onClick={() => inputParen(')')} />
+        <B label="C" cls="col-span-5 bg-zinc-100" onClick={clearAll} />
 
         <B label="7" onClick={() => inputDigit('7')} />
         <B label="8" onClick={() => inputDigit('8')} />
