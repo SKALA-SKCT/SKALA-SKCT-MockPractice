@@ -1,3 +1,5 @@
+import { getProblemSet } from '../../src/linkareer-catalog.ts';
+
 // KV: 결과 공유 생성. 내 세션 스냅샷을 공개 토큰으로 저장한다.
 // share:<token> → { session, createdAt }, shareof:<user>:<sessionId> → token (재공유 시 토큰 재사용)
 function json(o: unknown, status = 200): Response {
@@ -9,7 +11,7 @@ function json(o: unknown, status = 200): Response {
 
 // 저장된 세션의 results[]는 응시 시점 채점 스냅샷이다. 정답표가 나중에 수정될 수 있으므로
 // 공유 시점의 현재 정답표로 재채점해 저장한다(src/recompute.ts와 동일 규칙).
-function regrade(session: any, set: any): any {
+export function regrade(session: any, set: any): any {
   if (!Array.isArray(set?.items) || !Array.isArray(session?.results)) return session;
   const idx = new Map<string, any>();
   for (const it of set.items) idx.set(`${it.section}:${it.number}`, it);
@@ -47,7 +49,7 @@ export async function onRequestPost(context: any): Promise<Response> {
 
   const stored = await kv.get(`sess:${user}:${sessionId}`, 'json');
   if (!stored) return json({ error: '결과를 찾을 수 없습니다.' }, 404);
-  const set = await kv.get(`ps:${stored.problemSetId}`, 'json');
+  const set = await getProblemSet(kv, stored.problemSetId);
   const session = stripPersonal(regrade(stored, set));
 
   const mapKey = `shareof:${user}:${sessionId}`;

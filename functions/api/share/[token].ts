@@ -1,3 +1,6 @@
+import { getProblemSet } from '../../../src/linkareer-catalog.ts';
+import { regrade } from '../share.ts';
+
 // KV: 공유된 결과 공개 조회. 로그인 없이 접근 가능(미들웨어에서 예외 처리). share:<token>
 function json(o: unknown, status = 200): Response {
   return new Response(JSON.stringify(o), {
@@ -13,5 +16,6 @@ export async function onRequestGet(context: any): Promise<Response> {
   if (!/^[0-9a-f]{32}$/.test(token)) return json({ error: '잘못된 링크입니다.' }, 400);
   const shared = await kv.get(`share:${token}`, 'json');
   if (!shared?.session) return json({ error: '공유된 결과를 찾을 수 없습니다.' }, 404);
-  return json({ session: shared.session });
+  const set = await getProblemSet(kv, shared.session.problemSetId);
+  return json({ session: regrade(shared.session, set) });
 }
