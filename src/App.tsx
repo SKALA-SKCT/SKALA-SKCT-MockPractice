@@ -32,6 +32,9 @@ function Gate({ children }: { children: ReactNode }) {
             <a className="text-ink no-underline transition hover:text-brand" href="https://tutorial.skala-skct.com">
               유형별 문제 연습
             </a>
+            <a className="text-ink no-underline transition hover:text-brand" href="https://ai-tutor.skala-skct.com">
+              AI 튜터
+            </a>
             <a className="text-ink no-underline transition hover:text-brand" href={communityUrl}>게시판</a>
           </div>
           <div className="flex items-center justify-self-end gap-2 text-sm font-semibold">
