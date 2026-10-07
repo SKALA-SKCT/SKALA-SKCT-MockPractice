@@ -60,6 +60,7 @@ export interface SessionReview {
 }
 
 export interface Session {
+  sourceProblemSetId?: string;
   id: string;
   problemSetId: string;
   problemSetName: string;

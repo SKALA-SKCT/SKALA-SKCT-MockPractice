@@ -8,7 +8,7 @@ import { onRequestPost as share } from '../functions/api/share.ts';
 import { onRequestGet as getShare } from '../functions/api/share/[token].ts';
 import { onRequestGet as getCohort, onRequestPost as saveCohort } from '../functions/api/cohort.ts';
 
-test('보관한 3개 회차의 모든 영역과 기록 접근을 차단하고 KV 원본을 보존한다', async () => {
+test('공개 문항과 일치 여부를 확인할 수 없는 보관 기록을 숨기고 원본을 보존한다', async () => {
   for (let round = 10; round <= 12; round++) {
     for (let section = 1; section <= 5; section++) {
       const id = `mocktest-r${round}-s${section}`;
@@ -23,7 +23,7 @@ test('보관한 3개 회차의 모든 영역과 기록 접근을 차단하고 KV
       ]);
       const before = structuredClone([...entries]);
       const kv = {
-        get: async (key) => entries.get(key) ?? null,
+        get: async (key) => Array.isArray(key) ? new Map(key.map((k) => [k, entries.get(k) ?? null])) : entries.get(key) ?? null,
         list: async ({ prefix }) => ({ keys: [...entries.keys()].filter((key) => key.startsWith(prefix)).map((name) => ({ name })) }),
         put: async () => assert.fail('보관 데이터 쓰기 금지'),
         delete: async () => assert.fail('보관 데이터 삭제 금지'),

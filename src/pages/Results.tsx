@@ -1,3 +1,4 @@
+import { compareSessions } from '../session-history';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { store } from '../store';
@@ -46,7 +47,7 @@ export default function Results() {
       setAttempts(
         allSessions
           .filter((candidate) => candidate.problemSetId === s.problemSetId)
-          .sort((a, b) => a.finishedAt.localeCompare(b.finishedAt)),
+          .sort(compareSessions),
       );
       // 현재 정답표를 함께 불러와 재채점. 정답표가 없거나(삭제됨) 조회에 실패하면 저장된 스냅샷 그대로 표시.
       const ps = await store.getProblemSet(s.problemSetId).catch(() => null);
@@ -147,9 +148,9 @@ export default function Results() {
           <button className="btn primary" onClick={() => nav(`/exam/${session.problemSetId}`)}>
             재응시
           </button>
-          <button className="btn danger" onClick={removeAttempt}>
+          {!session.sourceProblemSetId && <button className="btn danger" onClick={removeAttempt}>
             이 회차 삭제
-          </button>
+          </button>}
         </div>
       </header>
 

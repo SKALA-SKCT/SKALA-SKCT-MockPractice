@@ -1,3 +1,4 @@
+import { mergeSession, readOriginalSets } from '../../src/session-history.ts';
 import { isHiddenProblemSet, getProblemSet } from '../../src/linkareer-catalog.ts';
 
 // KV: 결과 공유 생성. 내 세션 스냅샷을 공개 토큰으로 저장한다.
@@ -47,8 +48,9 @@ export async function onRequestPost(context: any): Promise<Response> {
   const sessionId = body?.sessionId;
   if (typeof sessionId !== 'string' || !sessionId) return json({ error: '잘못된 요청' }, 400);
 
-  const stored = await kv.get(`sess:${user}:${sessionId}`, 'json');
-  if (!stored || isHiddenProblemSet(stored.problemSetId)) return json({ error: '결과를 찾을 수 없습니다.' }, 404);
+  const raw = await kv.get(`sess:${user}:${sessionId}`, 'json');
+  const stored = raw && isHiddenProblemSet(raw.problemSetId) ? mergeSession(raw, await readOriginalSets(kv)) : raw;
+  if (!stored) return json({ error: '결과를 찾을 수 없습니다.' }, 404);
   const set = await getProblemSet(kv, stored.problemSetId);
   const session = stripPersonal(regrade(stored, set));
 

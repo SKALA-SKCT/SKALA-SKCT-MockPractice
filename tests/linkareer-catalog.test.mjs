@@ -18,7 +18,7 @@ test('공개 회차의 정답을 교정하고 보관 회차와 원본 데이터�
     }
   }
   const before = JSON.stringify([...sets]);
-  const kv = { get: async (key) => sets.get(key) ?? null,
+  const kv = { get: async (key) => Array.isArray(key) ? new Map(key.map((k) => [k, sets.get(k) ?? null])) : sets.get(key) ?? null,
     list: async () => ({ keys: [...sets.keys()].map((name) => ({ name })) }) };
   const listed = await (await listSets({ env: { SKCT_KV: kv } })).json();
   let corrected = 0;

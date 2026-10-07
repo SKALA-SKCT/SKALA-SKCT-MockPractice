@@ -75,7 +75,7 @@ export default function History() {
                   )}
                   <span className="tag">{fmtTime(a.overall.totalTimeSec)}</span>
                 </div>
-                <button
+                {!s.sourceProblemSetId && <button
                   className="btn ghost sm"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -84,7 +84,7 @@ export default function History() {
                   type="button"
                 >
                   삭제
-                </button>
+                </button>}
               </li>
             ))}
           </ul>
