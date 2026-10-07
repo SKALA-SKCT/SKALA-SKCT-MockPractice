@@ -1,5 +1,9 @@
 import type { ProblemSet } from './types.ts';
 
+export function isHiddenProblemSet(id: unknown): boolean {
+  return typeof id === 'string' && /^mocktest-r1[0-2]-s[1-5]$/.test(id);
+}
+
 // PDF의 기출 반영 학기와 현재 링커리어 회차명이 달라진 구간입니다.
 // 원본 ID: 2490~2492는 2025년 상반기, 2507~2509는 2025년 하반기입니다.
 export function sourceSetId(id: string): string | null {
@@ -20,6 +24,7 @@ export function correctProblemSet(set: ProblemSet, source: ProblemSet | null): P
 }
 
 export async function getProblemSet(kv: { get(key: string, type: 'json'): Promise<ProblemSet | null> }, id: string) {
+  if (isHiddenProblemSet(id)) return null;
   const set = await kv.get(`ps:${id}`, 'json');
   if (!set) return null;
   const sourceId = sourceSetId(id);

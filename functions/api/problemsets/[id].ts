@@ -1,4 +1,4 @@
-import { getProblemSet } from '../../../src/linkareer-catalog.ts';
+import { isHiddenProblemSet, getProblemSet } from '../../../src/linkareer-catalog.ts';
 
 // KV: 단일 문제셋 조회/삭제. 삭제는 소유자만. ps:<id>
 function json(o: unknown, status = 200): Response {
@@ -20,6 +20,7 @@ export async function onRequestDelete(context: any): Promise<Response> {
   const user: string | undefined = context.data?.user;
   if (!kv) return json({ error: 'KV(SKCT_KV) 바인딩이 없습니다.' }, 500);
   if (!user) return json({ error: '로그인이 필요합니다.' }, 401);
+  if (isHiddenProblemSet(context.params.id)) return json({ error: '문제셋을 찾을 수 없습니다.' }, 404);
   const existing = await kv.get('ps:' + context.params.id, 'json');
   if (existing?.owner && existing.owner !== user) {
     return json({ error: '다른 사람이 만든 문제셋은 삭제할 수 없어요.' }, 403);

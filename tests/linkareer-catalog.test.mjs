@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { correctProblemSet, getProblemSet, sourceSetId } from '../src/linkareer-catalog.ts';
+import { correctProblemSet, getProblemSet, sourceSetId, isHiddenProblemSet } from '../src/linkareer-catalog.ts';
 import { onRequestGet as listSets } from '../functions/api/problemsets.ts';
 import { onRequestGet as singleSet } from '../functions/api/problemsets/[id].ts';
 import { onRequestGet as sharedResult } from '../functions/api/share/[token].ts';
 
-test('2025년 600문항을 원본 회차로 연결하고 기록과 다른 문제셋을 보존한다', async () => {
+test('공개 회차의 정답을 교정하고 보관 회차와 원본 데이터를 보존한다', async () => {
   const sections = ['언어이해', '자료해석', '창의수리', '언어추리', '수열추리'];
   const sets = new Map();
   for (let round = 1; round <= 17; round++) {
@@ -23,6 +23,11 @@ test('2025년 600문항을 원본 회차로 연결하고 기록과 다른 문제
   const listed = await (await listSets({ env: { SKCT_KV: kv } })).json();
   let corrected = 0;
   for (const original of sets.values()) {
+    if (isHiddenProblemSet(original.id)) {
+      assert.equal(await getProblemSet(kv, original.id), null);
+      assert.ok(!listed.some((set) => set.id === original.id));
+      continue;
+    }
     const source = sourceSetId(original.id);
     const expected = source ? sets.get(`ps:${source}`).items : original.items;
     const actual = await getProblemSet(kv, original.id);
@@ -32,7 +37,8 @@ test('2025년 600문항을 원본 회차로 연결하고 기록과 다른 문제
     assert.deepEqual(await single.json(), actual);
     if (source) corrected += actual.items.length;
   }
-  assert.equal(corrected, 600);
+  assert.equal(corrected, 300);
+  assert.equal(listed.length, 70);
   assert.equal(JSON.stringify([...sets]), before);
   const target = sets.get('ps:mocktest-r07-s1');
   assert.throws(() => correctProblemSet(target, null));

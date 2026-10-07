@@ -1,3 +1,5 @@
+import { isHiddenProblemSet } from '../../src/linkareer-catalog.ts';
+
 // KV: 응시 결과(세션). 로그인 유저별로 분리 → sess:<user>:<id>.
 function json(o: unknown, status = 200): Response {
   return new Response(JSON.stringify(o), {
@@ -14,7 +16,7 @@ export async function onRequestGet(context: any): Promise<Response> {
   const listed = await kv.list({ prefix: `sess:${user}:` });
   const items = await Promise.all(listed.keys.map((k: any) => kv.get(k.name, 'json')));
   const sessions = items
-    .filter(Boolean)
+    .filter((s: any) => s && !isHiddenProblemSet(s.problemSetId))
     .sort((a: any, b: any) => String(b.finishedAt || '').localeCompare(String(a.finishedAt || '')));
   return json(sessions);
 }
@@ -26,6 +28,10 @@ export async function onRequestPost(context: any): Promise<Response> {
   if (!user) return json({ error: '로그인이 필요합니다.' }, 401);
   const s = await context.request.json();
   if (!s?.id) return json({ error: '잘못된 세션' }, 400);
+  const existing = await kv.get(`sess:${user}:${s.id}`, 'json');
+  if (isHiddenProblemSet(s.problemSetId) || isHiddenProblemSet(existing?.problemSetId)) {
+    return json({ error: '결과를 찾을 수 없습니다.' }, 404);
+  }
   await kv.put(`sess:${user}:${s.id}`, JSON.stringify(s));
   return json({ ok: true });
 }

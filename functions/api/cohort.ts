@@ -1,3 +1,5 @@
+import { isHiddenProblemSet } from '../../src/linkareer-catalog.ts';
+
 // KV: 코호트 벤치마킹. 같은 문제셋의 핸들별 최고 점수만 유지.
 // 키: cohort:<problemSetId>:<encoded handle>. GET은 익명 점수 배열만 반환(핸들 미노출).
 function json(o: unknown, status = 200): Response {
@@ -16,6 +18,7 @@ export async function onRequestPost(context: any): Promise<Response> {
   if (!e?.problemSetId || typeof e?.scorePct !== 'number') {
     return json({ error: '잘못된 제출' }, 400);
   }
+  if (isHiddenProblemSet(e.problemSetId)) return json({ error: '문제셋을 찾을 수 없습니다.' }, 404);
   const key = `cohort:${e.problemSetId}:${encodeURIComponent(user)}`;
   const prev = await kv.get(key, 'json');
   // 같은 유저는 최고 점수만 유지
@@ -30,6 +33,7 @@ export async function onRequestGet(context: any): Promise<Response> {
   if (!kv) return json({ error: 'KV(SKCT_KV) 바인딩이 없습니다.' }, 500);
   const setId = new URL(context.request.url).searchParams.get('set');
   if (!setId) return json({ error: 'set 파라미터가 필요합니다.' }, 400);
+  if (isHiddenProblemSet(setId)) return json({ error: '문제셋을 찾을 수 없습니다.' }, 404);
   const listed = await kv.list({ prefix: `cohort:${setId}:` });
   const entries = await Promise.all(listed.keys.map((k: any) => kv.get(k.name, 'json')));
   const scores = entries
