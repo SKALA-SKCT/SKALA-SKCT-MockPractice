@@ -1,4 +1,7 @@
-// KV: 문제셋 목록/저장(공용). 소유자·공식 플래그는 서버가 결정. 편집은 소유자만.
+import { correctProblemSet, sourceSetId } from '../../src/linkareer-catalog.ts';
+import type { ProblemSet } from '../../src/types.ts';
+
+// KV 문제셋 목록과 저장입니다. 소유자만 편집할 수 있습니다.
 function json(o: unknown, status = 200): Response {
   return new Response(JSON.stringify(o), {
     status,
@@ -12,7 +15,11 @@ export async function onRequestGet(context: any): Promise<Response> {
   const listed = await kv.list({ prefix: 'ps:' });
   const items = await Promise.all(listed.keys.map((k: any) => kv.get(k.name, 'json')));
   // 공식(관리자) 먼저, 그다음 최신순
-  const sets = items.filter(Boolean).sort((a: any, b: any) => {
+  const originals = new Map<string, ProblemSet>(items.filter(Boolean).map((set: ProblemSet) => [set.id, set]));
+  const sets = [...originals.values()].map((set) => {
+    const sourceId = sourceSetId(set.id);
+    return sourceId ? correctProblemSet(set, originals.get(sourceId) ?? null) : set;
+  }).sort((a, b) => {
     if (!!a.official !== !!b.official) return a.official ? -1 : 1;
     return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
   });
