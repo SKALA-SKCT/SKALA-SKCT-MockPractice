@@ -19,6 +19,7 @@ export default function ResultsReport({
   questionMemo,
   onQuestionMemoChange,
   onQuestionMemoBlur,
+  onAskTutor,
 }: {
   session: Session;
   rankSlot?: ReactNode;
@@ -27,6 +28,8 @@ export default function ResultsReport({
   questionMemo?: Record<string, string>;
   onQuestionMemoChange?: (key: string, value: string) => void;
   onQuestionMemoBlur?: () => void;
+  // 문항 줄에서 AI 튜터를 연다(내 결과 페이지에서만 전달).
+  onAskTutor?: (label: string) => void;
 }) {
   const a = analyze(session);
   const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -100,6 +103,7 @@ export default function ResultsReport({
         questionMemo={questionMemo}
         onQuestionMemoChange={onQuestionMemoChange}
         onQuestionMemoBlur={onQuestionMemoBlur}
+        onAskTutor={onAskTutor}
       />
     </>
   );
@@ -423,11 +427,13 @@ function PerQuestionTimes({
   questionMemo,
   onQuestionMemoChange,
   onQuestionMemoBlur,
+  onAskTutor,
 }: {
   analysis: Analysis;
   questionMemo?: Record<string, string>;
   onQuestionMemoChange?: (key: string, value: string) => void;
   onQuestionMemoBlur?: () => void;
+  onAskTutor?: (label: string) => void;
 }) {
   const editable = !!onQuestionMemoChange;
   const [openSections, setOpenSections] = useState(
@@ -495,6 +501,8 @@ function PerQuestionTimes({
                 const memoKey = `${p.section}:${p.number}`;
                 const memoValue = questionMemo?.[memoKey] ?? '';
                 const memoOpen = openMemos.has(memoKey);
+                // 맞힌 문항을 뺀 오답, 패스, 미착수 문항에서만 AI 튜터 바로가기를 보인다.
+                const askable = !!onAskTutor && p.outcome !== 'correct';
                 return (
                   <li key={p.number} className="qt-row">
                     <span className="qt-dot" style={{ background: meta.color }} title={meta.label} />
@@ -506,15 +514,28 @@ function PerQuestionTimes({
                         ? `내답 ${p.userAnswer} · 정답 ${p.answer}`
                         : `${meta.label} · 정답 ${p.answer}`}
                     </span>
-                    {editable && (
-                      <button
-                        type="button"
-                        className={`qt-memo-toggle${memoValue.trim() ? ' has' : ''}`}
-                        aria-expanded={memoOpen}
-                        onClick={() => toggleMemo(memoKey)}
-                      >
-                        {memoValue.trim() ? '메모 ●' : '＋ 메모'}
-                      </button>
+                    {(editable || askable) && (
+                      <span className="qt-actions">
+                        {editable && (
+                          <button
+                            type="button"
+                            className={`qt-memo-toggle${memoValue.trim() ? ' has' : ''}`}
+                            aria-expanded={memoOpen}
+                            onClick={() => toggleMemo(memoKey)}
+                          >
+                            {memoValue.trim() ? '메모 ●' : '＋ 메모'}
+                          </button>
+                        )}
+                        {askable && (
+                          <button
+                            type="button"
+                            className="qt-tutor-toggle"
+                            onClick={() => onAskTutor?.(`${p.section} ${p.number}번`)}
+                          >
+                            AI 튜터에게 묻기
+                          </button>
+                        )}
+                      </span>
                     )}
                     {editable && memoOpen && (
                       <textarea

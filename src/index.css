@@ -1355,6 +1355,26 @@ a:hover {
 .qt-memo-toggle.has {
   color: var(--primary);
 }
+.qt-actions {
+  display: flex;
+  flex-basis: 100%;
+  order: 1;
+  gap: 14px;
+}
+.qt-actions .qt-memo-toggle {
+  flex-basis: auto;
+  order: 0;
+}
+.qt-tutor-toggle {
+  padding: 2px 0 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+}
 .qt-memo-input {
   flex-basis: 100%;
   order: 2;
