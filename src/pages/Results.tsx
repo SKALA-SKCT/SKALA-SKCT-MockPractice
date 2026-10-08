@@ -1,5 +1,5 @@
 import { compareSessions } from '../session-history';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { store } from '../store';
 import type { Session, SessionReview } from '../types';
@@ -10,6 +10,7 @@ import { createShareLink } from '../share';
 import { useAuth } from '../auth';
 import DistributionChart from '../components/DistributionChart';
 import ResultsReport from '../components/ResultsReport';
+import AiTutorDrawer from '../components/AiTutorDrawer';
 
 export default function Results() {
   const { sessionId } = useParams();
@@ -21,6 +22,9 @@ export default function Results() {
   const reviewRef = useRef<SessionReview>({});
   const [review, setReview] = useState<SessionReview>({});
   const [reviewStatus, setReviewStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [tutor, setTutor] = useState<{ open: boolean; label: string | null }>({ open: false, label: null });
+  const openTutor = useCallback((label: string | null) => setTutor({ open: true, label }), []);
+  const closeTutor = useCallback(() => setTutor((current) => ({ ...current, open: false })), []);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -181,7 +185,10 @@ export default function Results() {
         questionMemo={review.perQuestion}
         onQuestionMemoChange={setQuestionMemo}
         onQuestionMemoBlur={saveReview}
+        onAskTutor={openTutor}
       />
+
+      <AiTutorDrawer open={tutor.open} label={tutor.label} onOpen={() => openTutor(null)} onClose={closeTutor} />
     </div>
   );
 }
